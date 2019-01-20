@@ -1,10 +1,10 @@
 #ifndef SCANNER_SYMBOL_H
 #define SCANNER_SYMBOL_H
 
-enum class Symbol: int
+enum Symbol
 {
-    ID,
-    INT_LITERAL,
+    IDENTIFIER,
+    NUMERAL,
     // Keywords
     BEGIN,
     END,
@@ -21,8 +21,8 @@ enum class Symbol: int
     FI,
     DO,
     OD,
-    TRUE,
-    FALSE,
+    TRUE_KEYWORD,
+    FALSE_KEYWORD,
     // Special Symbols
     PERIOD,
     COMMA,
@@ -45,7 +45,11 @@ enum class Symbol: int
     ASSIGN,
     RIGHT_ARROW,
     DOUBLE_BRACKET,
-    COMMENT
+    COMMENT,
+    // Error symbols
+    INVALID_CHAR,
+    INVALID_NUMERAL,
+    INVALID_WORD
 };
 
 #endif

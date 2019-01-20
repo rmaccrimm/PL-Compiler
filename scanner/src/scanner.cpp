@@ -35,22 +35,39 @@ void Scanner::skip_separators()
     }
 }
 
-Symbol Scanner::scan_word()
+Token Scanner::scan_word()
 {
+    // Just checks that we have not called this function incorrectly
     assert(letter(*next_char));
 
     std::string word;
 
+    bool invalid_word = false;
     while (!separator(*next_char)) {
-        bool valid_word_char = letter(*next_char) || digit(*next_char) || *next_char != '_';
-        assert(valid_word_char);
+        // will remain true if at any point an invalid character is found
+        invalid_word |= !(letter(*next_char) || digit(*next_char) || *next_char == '_');
         word += *next_char;
         next_char++;
+    }
+    if (invalid_word) {
+        return Token(INVALID_WORD, word);
+    }
+    else {
+        Token *lookup_tok = symbol_table.search(word);
+        if (lookup_tok != nullptr) {
+            return *lookup_tok;
+        }
+        else {
+            /*  Symbol table is preinitialized with all keywords, so if word is not found, we
+                have an identifier
+            */
+            return Token(IDENTIFIER, word);
+        }
     }
     
 }
 
-Symbol Scanner::scan_numeral()
+Token Scanner::scan_numeral()
 {
 
 }

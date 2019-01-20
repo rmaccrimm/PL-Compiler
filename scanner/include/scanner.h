@@ -2,6 +2,7 @@
 #define SCANNER_H
 
 #include "token.h"
+#include "symbol_table.h"
 #include <vector>
 #include <string>
 #include <iterator>
@@ -16,8 +17,8 @@ public:
     Token get_token(); 
 
 private:
-    const std::string &input;
-    std::string::const_iterator next_char;
+    SymbolTable symbol_table;
+    std::istream_iterator<char> next_char;
 
     // Character types
     bool letter(char);
@@ -27,10 +28,12 @@ private:
     // Advance next_char while pointing to separator
     void skip_separators();
 
-    Symbol scan_word();
-    Symbol scan_numeral();
+    // Construct a token for a keyword or identifier (anything beginning with a letter)
+    Token scan_word();
 
-    Symbol next_symbol();
+    // Construct a token for a numeral (begins with a number)
+    Token scan_numeral();
+
 };
 
 #endif
