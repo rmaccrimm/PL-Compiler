@@ -3,6 +3,8 @@
 
 enum Symbol
 {
+    EMPTY,
+    END_OF_FILE,    
     IDENTIFIER,
     NUMERAL,
     // Keywords
@@ -49,7 +51,7 @@ enum Symbol
     // Error symbols
     INVALID_CHAR,
     INVALID_NUMERAL,
-    INVALID_WORD
+    INVALID_WORD    
 };
 
 #endif

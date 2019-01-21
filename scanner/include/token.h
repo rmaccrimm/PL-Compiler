@@ -8,7 +8,9 @@
 class Token
 {
 public:
-    Token(Symbol tok_symbol, std::string tok_lexeme, int tok_value = 0);
+    Token();
+
+    Token(Symbol tok_symbol, std::string tok_lexeme = "", int tok_value = 0);
 
     Token(const Token &tok);
 
