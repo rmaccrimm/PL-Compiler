@@ -6,6 +6,20 @@
 SymbolTable::SymbolTable() : used{0}
 {
     tok_table.resize(100);
+
+    Symbol symbols[] = {  
+        BEGIN, END, CONST, ARRAY, INT, BOOL, PROC, SKIP, READ, WRITE, CALL, IF, FI, DO, OD, 
+        TRUE_KEYWORD, FALSE_KEYWORD 
+    };
+    std::string lexemes[] = {
+        "begin", "end", "const", "array", "int", "bool", "skip", "read", "write", "call", "if", 
+        "fi", "do", "od", "true", "false" 
+    };
+    int i = 0;
+    for (auto s: symbols) {
+        insert(Token(s, lexemes[i]));
+        i++;
+    }
 }
 
 int SymbolTable::hash_fn(std::string key)
@@ -17,11 +31,11 @@ int SymbolTable::hash_fn(std::string key)
     }
     hash %= tok_table.size();
 
-    // Linear probing for collisions
-    if (tok_table[hash]) {
-        while (tok_table[hash]->lexeme != key) {
-            hash = (hash + 1) % tok_table.size();
-        }
+    /*  Linear probing for collisions - Find first entry after hash with lexeme matching key or
+        NULL entry
+    */
+    while (tok_table[hash] && (tok_table[hash]->lexeme != key)) {
+        hash = (hash + 1) % tok_table.size();
     }
     return hash;
 }

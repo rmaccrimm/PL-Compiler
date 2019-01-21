@@ -51,7 +51,8 @@ enum Symbol
     // Error symbols
     INVALID_CHAR,
     INVALID_NUMERAL,
-    INVALID_WORD    
+    INVALID_WORD,
+    INVALID_SYMBOL 
 };
 
 #endif
