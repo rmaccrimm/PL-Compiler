@@ -177,6 +177,8 @@ Token Scanner::scan_symbol()
             return Token(MODULO, lex);
         case '\\':
             return Token(DIVIDE, lex);
+        case '\n':
+            return Token(NEWLINE, lex);
         default:
             return Token(INVALID_CHAR, lex);
     }

@@ -4,7 +4,8 @@
 enum Symbol
 {
     EMPTY,
-    END_OF_FILE,    
+    END_OF_FILE,
+    NEWLINE, 
     IDENTIFIER,
     NUMERAL,
     // Keywords
