@@ -20,10 +20,12 @@ public:
     SymbolTable &sym_table;
     std::istream_iterator<char> next_char, eof;
 
-    // Character types
-    bool letter(char);
-    bool digit(char);
-    bool separator(char);
+    // Character types    
+    bool letter(char c);
+    bool digit(char c);
+    bool special_symbol(char c);
+    bool separator(char c);
+
 
     // Advance next_char while pointing to separator
     void skip_whitespace();

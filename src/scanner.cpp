@@ -12,13 +12,16 @@ Scanner::Scanner(std::ifstream &program_file, SymbolTable &symbol_table) :
 Token Scanner::get_token()
 {
     skip_whitespace();
-    if (*next_char == '$') {
-        skip_line();
-    }
-    skip_whitespace();
 
     if (next_char == eof) {
+        /*  Once the end of the file is reached, any subsequent calls to get_token will continue to 
+            return an end of file token
+        */
         return Token(END_OF_FILE);
+    }
+    else if (*next_char == '$') {
+        // $ starts a comment and the rest of the line following it is ignored 
+        skip_line();
     }
     else if (letter(*next_char)) {
         return scan_word();
@@ -26,8 +29,14 @@ Token Scanner::get_token()
     else if (digit(*next_char)) {
         return scan_numeral();
     }
-    else {
+    else if (special_symbol(*next_char)) {
         return scan_symbol();
+    }
+    else {
+        // unrecognized character
+        std::string c(1, *next_char);
+        next_char++;
+        return Token(INVALID_CHAR, c);
     }
 }
 
@@ -45,7 +54,22 @@ bool Scanner::digit(char c)
 
 bool Scanner::separator(char c)
 {
-    return (c == ' ') || (c == '\n') || (c == '\t');
+    /*  A.k.a whitespace characters. Newline is considered a symbol since we want a newline token 
+        for debugging purposes */
+    return (c == ' ') || (c == '\t');
+}
+
+bool Scanner::special_symbol(char c)
+{
+    // All symbols allowed in 
+    char symbols[] = { '.', ',', ';', ':', '(', ')', '[', ']', '&', '|', '~', '<', '>', '+', '-', 
+                       '=', '/', '\\', '\n' };
+    for (auto s: symbols) {
+        if (c == s) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Scanner::skip_whitespace()
@@ -57,18 +81,19 @@ void Scanner::skip_whitespace()
 
 void Scanner::skip_line()
 {
+    /*  Skip up to the next newline, but not the newline itself. This is for the case of statements
+        followed by comments where we still want to retain the line information for the statement
+    */
     while (*next_char != '\n') {
         next_char++;
     }
-    next_char++;
 }
 
 Token Scanner::scan_word()
 {
     std::string word;
     bool invalid_word = false;
-    char c = *next_char;
-    while (!separator(c = *next_char)) {
+    while (!(separator(*next_char) || special_symbol(*next_char))) {
         // will remain true if at any point an invalid character is found
         invalid_word |= !(letter(*next_char) || digit(*next_char) || *next_char == '_');
         word += *next_char;
@@ -78,6 +103,7 @@ Token Scanner::scan_word()
         return Token(INVALID_WORD, word);
     }
     if (sym_table.contains(word)) {
+        // If the word is already stored in the symbol table, just return that token
         return sym_table.get(word);
     }
     else {
@@ -94,10 +120,11 @@ Token Scanner::scan_numeral()
 {
     std::string numeral;
     bool invalid_numeral = false;
-    while (!separator(*next_char)) {
+    while (!(separator(*next_char) || special_symbol(*next_char))) {
         numeral += *next_char;
         next_char++;
     }
+    // A stringstream can be used to easily determine if a string represents a valid integer
     std::stringstream ss(numeral);
     int val;
     if (ss >> val) {
@@ -124,14 +151,13 @@ Token Scanner::scan_symbol()
         case ';':
             return Token(SEMICOLON, lex);
         case ':':
+            // The only valid case for a : character is when followed by =
             if (*next_char == '=') {
                 lex += *next_char;
                 next_char++;
                 return Token(ASSIGN, lex);
             }
             else {
-                lex += *next_char;
-                next_char++;
                 return Token(INVALID_SYMBOL, lex);
             }
         case '(':
@@ -139,6 +165,9 @@ Token Scanner::scan_symbol()
         case ')':
             return Token(RIGHT_PARENTHESIS, lex);
         case '[':
+            /*  A [ character can either be a left parenthesis for array indexing or the [] for 
+                separating guarded statements
+            */
             if (*next_char == ']') {
                 lex += *next_char;
                 next_char++;
@@ -162,6 +191,9 @@ Token Scanner::scan_symbol()
         case '+':
             return Token(ADD, lex);
         case '-':
+            /*  Can be either a part of the conditional operator -> in guarded statements or 
+                subtraction
+            */
             if (*next_char == '>') {
                 lex += *next_char;
                 next_char++;
@@ -174,11 +206,12 @@ Token Scanner::scan_symbol()
         case '=':
             return Token(EQUALS, lex);
         case '/':
-            return Token(MODULO, lex);
-        case '\\':
             return Token(DIVIDE, lex);
+        case '\\':
+            return Token(MODULO, lex);
         case '\n':
-            return Token(NEWLINE, lex);
+            // No lexeme avoids printing extra newline when debugging
+            return Token(NEWLINE, "");
         default:
             return Token(INVALID_CHAR, lex);
     }
