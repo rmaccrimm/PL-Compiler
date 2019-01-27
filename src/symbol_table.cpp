@@ -12,7 +12,7 @@ SymbolTable::SymbolTable() : used{0}
         TRUE_KEYWORD, FALSE_KEYWORD 
     };
     std::string lexemes[] = {
-        "begin", "end", "const", "array", "int", "bool", "skip", "read", "write", "call", "if", 
+        "begin", "end", "const", "array", "integer", "Boolean", "skip", "read", "write", "call", "if", 
         "fi", "do", "od", "true", "false" 
     };
     int i = 0;
