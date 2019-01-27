@@ -3,11 +3,28 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 Compiler::Compiler(std::ifstream &input_file) : 
     scanner(input_file, sym_table), current_line{1}, error_count{0}, MAX_ERRORS{10} {}
 
 bool Compiler::scan(std::ofstream &output_file)
+{
+    auto token_list = tokenize();
+    for (auto t: token_list) {
+        output_file << SYMBOL_STRINGS.at(t.symbol) << ' ' << t.lexeme << ' ' << t.value << '\n';
+    }
+    return error_count == 0;
+}
+
+bool Compiler::scan(std::vector<Token> &scanner_output)
+{
+    auto token_list = tokenize();
+    std::copy(token_list.begin(), token_list.end(), scanner_output.begin());
+    return error_count == 0;
+}
+
+std::vector<Token> Compiler::tokenize()
 {
     Token tok;
     std::vector<Token> token_list;
@@ -16,29 +33,19 @@ bool Compiler::scan(std::ofstream &output_file)
         if (error_token(tok)) {
             error_count++;
             print_error_msg(tok);
+            // Only one error allowed per line, rest of line is ignored
             skip_line();
             if (error_count >= MAX_ERRORS) {
                 std::cerr << "Number of errors reached maximum, aborting scan" << std::endl;
                 break;
             }
         }
-        else {
-            if (tok.symbol == NEWLINE) {
-                current_line++;
-            }
-            token_list.push_back(tok);
+        else if (tok.symbol == NEWLINE) {
+            current_line++;
         }
+        token_list.push_back(tok);
     } while ((tok.symbol != END_OF_FILE) && (error_count <= MAX_ERRORS));
-
-    if (error_count > 0) {
-        return false;
-    }
-    else {
-        for (auto t: token_list) {
-            output_file << SYMBOL_STRINGS.at(t.symbol) << ' ' << t.lexeme << ' ' << t.value << '\n';
-        }
-        return true;
-    }
+    return token_list;
 }
 
 void Compiler::skip_line()

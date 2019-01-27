@@ -8,12 +8,12 @@
 
 int main(int argc, char *argv[]) 
 {
-    std::ifstream file_in("error_test_program");
+    std::ifstream file_in("test/error_test_program.pl");
     if (!file_in.good()) {
-        std::cerr << "failed to input open file" << std::endl;
+        std::cerr << "failed to open input file" << std::endl;
         return -1;
     }
-    std::ofstream file_out("test_output");
+    std::ofstream file_out("test/test_output");
     if (!file_out.good()) {
         std::cerr << "failed to open output file" << std::endl;
         return -1;
@@ -21,9 +21,6 @@ int main(int argc, char *argv[])
 
     Compiler compiler(file_in);
     if (compiler.scan(file_out)) {
-        std::cout << "Scan completed successfully. Wrote output to file" << std::endl;
-    }
-    else {
-        std::cout << "Scanner errors detected. No output written." << std::endl;
+        std::cout << "Scan completed without errors." << std::endl;
     }
 }
