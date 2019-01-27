@@ -6,7 +6,7 @@
 #include <string>
 #include <compiler.h>
 
-int main()
+int main(int argc, char *argv[]) 
 {
     std::ifstream file_in("error_test_program");
     if (!file_in.good()) {
@@ -26,13 +26,4 @@ int main()
     else {
         std::cout << "Scanner errors detected. No output written." << std::endl;
     }
-
-
-    /*Token t;
-    do {
-        t = scanner.get_token();
-        std::cout << symbol_string.at(t.symbol) << std::endl
-                  << "  lex: " << t.lexeme << std::endl 
-                  << "  val: " << t.value << std::endl;
-    } while (t.symbol != END_OF_FILE);*/
 }
