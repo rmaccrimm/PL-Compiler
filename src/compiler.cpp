@@ -14,13 +14,16 @@ bool Compiler::scan(std::ofstream &output_file)
     for (auto t: token_list) {
         output_file << SYMBOL_STRINGS.at(t.symbol) << ' ' << t.lexeme << ' ' << t.value << '\n';
     }
+    // False if errors were found in tokenization
     return error_count == 0;
 }
 
 bool Compiler::scan(std::vector<Token> &scanner_output)
 {
     auto token_list = tokenize();
+    scanner_output.resize(token_list.size());
     std::copy(token_list.begin(), token_list.end(), scanner_output.begin());
+    // False if errors were found in tokenization
     return error_count == 0;
 }
 
@@ -28,6 +31,7 @@ std::vector<Token> Compiler::tokenize()
 {
     Token tok;
     std::vector<Token> token_list;
+    
     do {
         tok = scanner.get_token();
         if (error_token(tok)) {
@@ -45,6 +49,7 @@ std::vector<Token> Compiler::tokenize()
         }
         token_list.push_back(tok);
     } while ((tok.symbol != END_OF_FILE) && (error_count <= MAX_ERRORS));
+
     return token_list;
 }
 
