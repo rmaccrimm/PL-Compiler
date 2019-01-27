@@ -1,6 +1,5 @@
 #include "scanner.h"
 #include <cassert>
-#include <sstream>
 
 Scanner::Scanner(std::ifstream &program_file, SymbolTable &symbol_table) : 
     next_char{program_file}, sym_table{symbol_table} 
@@ -128,17 +127,17 @@ Token Scanner::scan_numeral()
     std::string numeral;
     bool invalid_numeral = false;
     while (!eof() && !separator(*next_char)) {
+        // Numerals can only contain digits, but continue to read if invalid char is found
+        invalid_numeral |= !(digit(*next_char));
         numeral += *next_char;
         next_char++;
     }
-    // A stringstream can be used to easily determine if a string represents a valid integer
-    std::stringstream ss(numeral);
-    int val;
-    if (ss >> val) {
-        return Token(NUMERAL, numeral, val);
+    if (invalid_numeral) {
+        return Token(INVALID_NUMERAL, numeral);
     }
     else {
-        return Token(INVALID_NUMERAL, numeral);
+        int val = std::stoi(numeral);
+        return Token(NUMERAL, numeral, val);
     }
 }
 
