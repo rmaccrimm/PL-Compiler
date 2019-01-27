@@ -18,7 +18,7 @@ public:
 
 // private:
     SymbolTable &sym_table;
-    std::istream_iterator<char> next_char, eof;
+    std::istream_iterator<char> next_char, eos_iter;
 
     // Character types    
     bool letter(char c);
@@ -26,6 +26,8 @@ public:
     bool special_symbol(char c);
     bool separator(char c);
 
+    // Check if end of file has been reached, i.e. next_char is at the end of the input stream
+    bool eof();
 
     // Advance next_char while pointing to separator
     void skip_whitespace();

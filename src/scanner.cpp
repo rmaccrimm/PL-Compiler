@@ -13,15 +13,16 @@ Token Scanner::get_token()
 {
     skip_whitespace();
 
-    if (next_char == eof) {
+    if (eof()) {
         /*  Once the end of the file is reached, any subsequent calls to get_token will continue to 
             return an end of file token
         */
         return Token(END_OF_FILE);
     }
     else if (*next_char == '$') {
-        // $ starts a comment and the rest of the line following it is ignored 
+        // For comments, skip line and recurse to return the newline token
         skip_line();
+        return get_token();
     }
     else if (letter(*next_char)) {
         return scan_word();
@@ -54,14 +55,13 @@ bool Scanner::digit(char c)
 
 bool Scanner::separator(char c)
 {
-    /*  A.k.a whitespace characters. Newline is considered a symbol since we want a newline token 
-        for debugging purposes */
-    return (c == ' ') || (c == '\t');
+    //  A separator is anything that can end a word or numeral
+    return (c == ' ') || (c == '\t') || special_symbol(c);
 }
 
 bool Scanner::special_symbol(char c)
 {
-    // All symbols allowed in 
+    // All symbols allowed in PL
     char symbols[] = { '.', ',', ';', ':', '(', ')', '[', ']', '&', '|', '~', '<', '>', '+', '-', 
                        '=', '/', '\\', '\n' };
     for (auto s: symbols) {
@@ -72,9 +72,16 @@ bool Scanner::special_symbol(char c)
     return false;
 }
 
+bool Scanner::eof()
+{
+    // eos_iter is a default istream_iterator, which acts as and end of stream pointer
+    return next_char == eos_iter;
+}
+
 void Scanner::skip_whitespace()
 {
-    while (separator(*next_char)) {
+    // Newlines are are not considered whitespace because we want a newline token for debugging
+    while (*next_char == ' ' || *next_char == '\t') {
         next_char++;
     }
 }
@@ -93,7 +100,7 @@ Token Scanner::scan_word()
 {
     std::string word;
     bool invalid_word = false;
-    while (!(separator(*next_char) || special_symbol(*next_char))) {
+    while (!eof() && !separator(*next_char)) {
         // will remain true if at any point an invalid character is found
         invalid_word |= !(letter(*next_char) || digit(*next_char) || *next_char == '_');
         word += *next_char;
@@ -120,7 +127,7 @@ Token Scanner::scan_numeral()
 {
     std::string numeral;
     bool invalid_numeral = false;
-    while (!(separator(*next_char) || special_symbol(*next_char))) {
+    while (!eof() && !separator(*next_char)) {
         numeral += *next_char;
         next_char++;
     }
