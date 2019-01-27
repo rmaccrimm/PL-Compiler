@@ -19,6 +19,7 @@ public:
     Token get_token(); 
 
 private:
+    // Store a reference since symbol table will be shared between components
     SymbolTable &sym_table;
 
     // Points to the next character to parse in the input
