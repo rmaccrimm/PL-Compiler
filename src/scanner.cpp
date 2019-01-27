@@ -19,7 +19,9 @@ Token Scanner::get_token()
         return Token(END_OF_FILE);
     }
     else if (*next_char == '$') {
-        // For comments, skip line and recurse to return the newline token
+        /*  $ marks comments - skip everything until the next newline, recurse to return the 
+            newline token
+        */
         skip_line();
         return get_token();
     }
@@ -88,7 +90,7 @@ void Scanner::skip_whitespace()
 void Scanner::skip_line()
 {
     /*  Skip up to the next newline, but not the newline itself. This is for the case of statements
-        followed by comments where we still want to retain the line information for the statement
+        followed by comments where we still want to retain the line information for debugging
     */
     while (*next_char != '\n') {
         next_char++;
