@@ -1,3 +1,4 @@
+
 #include "scanner.h"
 #include <cassert>
 
@@ -64,7 +65,7 @@ bool Scanner::special_symbol(char c)
 {
     // All symbols allowed in PL
     char symbols[] = { '.', ',', ';', ':', '(', ')', '[', ']', '&', '|', '~', '<', '>', '+', '-', 
-                       '=', '/', '\\', '\n' };
+                       '=', '*', '/', '\\', '\n' };
     for (auto s: symbols) {
         if (c == s) {
             return true;
@@ -213,6 +214,8 @@ Token Scanner::scan_symbol()
             break;
         case '=':
             return Token(EQUALS, lex);
+        case '*':
+            return Token(MULTIPLY, lex);
         case '/':
             return Token(DIVIDE, lex);
         case '\\':
