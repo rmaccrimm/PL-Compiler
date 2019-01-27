@@ -59,7 +59,7 @@ enum Symbol
     INVALID_SYMBOL 
 };
 
-static const std::map<Symbol, std::string> symbol_string = 
+static const std::map<Symbol, std::string> SYMBOL_STRINGS = 
 {
     {EMPTY, "EMPTY"},
     {END_OF_FILE, "END_OF_FILE"},

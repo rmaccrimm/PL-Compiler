@@ -16,7 +16,7 @@ Token Scanner::get_token()
         /*  Once the end of the file is reached, any subsequent calls to get_token will continue to 
             return an end of file token
         */
-        return Token(END_OF_FILE);
+        return Token(END_OF_FILE, "EOF");
     }
     else if (*next_char == '$') {
         /*  $ marks comments - skip everything until the next newline, recurse to return the 
@@ -218,8 +218,7 @@ Token Scanner::scan_symbol()
         case '\\':
             return Token(MODULO, lex);
         case '\n':
-            // No lexeme avoids printing extra newline when debugging
-            return Token(NEWLINE, "");
+            return Token(NEWLINE, "\\n");
         default:
             return Token(INVALID_CHAR, lex);
     }
