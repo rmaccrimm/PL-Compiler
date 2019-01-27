@@ -93,7 +93,7 @@ void Scanner::skip_line()
     /*  Skip up to the next newline, but not the newline itself. This is for the case of statements
         followed by comments where we still want to retain the line information for debugging
     */
-    while (*next_char != '\n') {
+    while (*next_char != '\n' && !eof()) {
         next_char++;
     }
 }
