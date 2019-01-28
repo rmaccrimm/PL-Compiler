@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
     */
     Compiler compiler(file_in);
     if (compiler.scan(file_out)) {
-        std::cout << "Scan completed without errors. Output written to " + output_file << std::endl;
+        std::cout << "Scan completed without errors. ";
     }
+    std::cout << "Output written to " + output_file << std::endl;
 }
