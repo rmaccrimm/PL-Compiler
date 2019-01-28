@@ -3,6 +3,36 @@ Spring 2019
 
 Roderick MacCrimmon
 
+## Files & Directory Layout
+(excluding CMake build files)
+
+  - README.pdf
+  - technical_doc.pdf
+  - **include/** - header files
+    - compiler.h
+    - scanner.h
+    - symbol_table.h
+    - symbol.h
+    - token.h
+  - **src/** - implementation files
+    - main.cpp - contains main function for plc
+    - compiler.cpp
+    - scanner.cpp
+    - symbol_table.cpp
+    - token.cpp
+  - **test/**
+    - catch.hpp - CATCH2 unit testing library header
+    - main.cpp - defines main needed for running unit tests
+    - test_scanner.cpp - unit tests
+    - **src_files/** - PL source code used for testing
+      - valid_test_program.pl
+      - error_test_program.pl
+      - invalid
+      - token_types
+  - **docs/**
+    - README.md
+    - technical_layout.tex 
+
 ## Build Instructions
 This project uses CMake to automatically generate makefiles. It has been tested to ensure it builds
 and runs on the linux lab computers. 
