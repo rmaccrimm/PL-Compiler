@@ -1,6 +1,4 @@
 # CPSC 4600 Project Language (PL) Compiler
-Spring 2019
-
 Roderick MacCrimmon (single person group, responsible for whole project)
 
 Estimated time spent on project: 10-15 hours (2 weekends - did not really keep track)
