@@ -5,7 +5,7 @@
 
 SymbolTable::SymbolTable() : used{0}
 {
-    tok_table.resize(100);
+    tok_table.resize(101);
 
     Symbol symbols[] = {  
         BEGIN, END, CONST, ARRAY, INT, BOOL, PROC, SKIP, READ, WRITE, CALL, IF, FI, DO, OD, 
@@ -15,10 +15,9 @@ SymbolTable::SymbolTable() : used{0}
         "begin", "end", "const", "array", "integer", "Boolean", "proc", "skip", "read", "write", 
         "call", "if", "fi", "do", "od", "true", "false"
     };
-    int i = 0;
     for (auto s: symbols) {
-        insert(Token(s, lexemes[i]));
-        i++;
+        insert(Token(s, lexemes[used]));
+        used++;
     }
 }
 
