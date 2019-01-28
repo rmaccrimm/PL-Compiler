@@ -9,7 +9,8 @@ and runs on the linux lab computers.
 
 From the project root directory run the following commands:
 ```
-cd build/
+mkdir build
+cd build
 cmake ../
 make
 ```
