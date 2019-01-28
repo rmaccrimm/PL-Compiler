@@ -1,7 +1,9 @@
 # CPSC 4600 Project Language (PL) Compiler
 Spring 2019
 
-Roderick MacCrimmon
+Roderick MacCrimmon (single person group, responsible for whole project)
+
+Estimated time spent on project: 10-15 hours (2 weekends - did not really keep track)
 
 ## Files & Directory Layout
 (excluding CMake build files)
@@ -35,7 +37,7 @@ Roderick MacCrimmon
 
 ## Build Instructions
 This project uses CMake to automatically generate makefiles. It has been tested to ensure it builds
-and runs on the linux lab computers. 
+and runs on the linux lab computers without any compilation or runtime errors.
 
 From the project root directory run the following commands:
 ```
