@@ -11,7 +11,7 @@ From the project root directory run the following commands:
 ```
 mkdir build
 cd build
-cmake ../
+cmake ..
 make
 ```
 This will produce two separate executables - one for the main compiler at build/src/plc, and a 
