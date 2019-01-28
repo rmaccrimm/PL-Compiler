@@ -23,6 +23,9 @@ The compiler can be run with
 The source file must always be provided as the first argument. The output file is optional and if
 none is provided, output will be written to scanner.out
 
+Two example files are provided to see the output at test/src_files/valid_test_program.pl and 
+test/src_files/error_test_program.pl
+
 The unit tests can be run from the project root directory with
 ```
 ./build/test/run_tests
