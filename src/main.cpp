@@ -34,7 +34,8 @@ int main(int argc, char *argv[])
     */
     std::ifstream file_in(input_file);
     if (!file_in.good()) {
-        std::cerr << "failed to open input file " + input_file << std::endl;
+        std::cerr << "failed to open input file " + input_file << std::endl 
+                  << usage_info << std::endl;
         return -1;
     }
     std::ofstream file_out(output_file);
