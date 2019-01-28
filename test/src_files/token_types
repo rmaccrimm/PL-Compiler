@@ -1,0 +1,4 @@
+.,;&|[()]~<=>+-*/\:=[]->$
+begin BEGIN end END const CONST array ARRAY integer INTEGER Boolean boolean proc PROC skip SKIP read READ write Write call CALL if IF fi FI do DO od OD false FALSE true TRUE
+identifier i id_ id_1 id2 id2_
+123 0 2147483647 $max int value

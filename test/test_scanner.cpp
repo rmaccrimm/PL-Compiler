@@ -18,7 +18,9 @@ std::ifstream open_file(std::string s)
 void check_expected(std::vector<Symbol> &expected, Scanner &sc)
 {
     for (auto s: expected) {
-        REQUIRE(s == sc.get_token().symbol);
+        auto t = sc.get_token();
+        // std::cout << s << ' ' << t.symbol << ' ' << t.lexeme << std::endl;
+        REQUIRE(s == t.symbol);
     }
 }
 
@@ -27,8 +29,6 @@ TEST_CASE("Check all valid token types", "[token_types]")
     SymbolTable sym;
     auto fin = open_file("test/src_files/token_types");
     Scanner sc(fin, sym);
-    // std::cout << sc.get_token().lexeme << std::endl;
-    // std::cout << sc.get_token().lexeme << std::endl;
     std::vector<Symbol> expected = {
         PERIOD, COMMA, SEMICOLON, AND, OR, LEFT_BRACKET, LEFT_PARENTHESIS, RIGHT_PARENTHESIS,
         RIGHT_BRACKET, NOT, LESS_THAN, EQUALS, GREATER_THAN, ADD, SUBTRACT, MULTIPLY, DIVIDE, 
@@ -45,10 +45,14 @@ TEST_CASE("Check all valid token types", "[token_types]")
 
 TEST_CASE("Invalid characters, numerals and identifiers", "[invalid]")
 {
+    SymbolTable sym;
+    auto fin = open_file("test/src_files/invalid");
+    Scanner sc(fin, sym);
+    std::vector<Symbol> expected = {
+        INVALID_WORD, INVALID_WORD, INVALID_WORD, NEWLINE, INVALID_CHAR, INVALID_CHAR, 
+        INVALID_SYMBOL, ADD, INVALID_CHAR, IDENTIFIER, INVALID_CHAR, IDENTIFIER, 
+        NEWLINE, INVALID_NUMERAL, INVALID_NUMERAL, INVALID_NUMERAL, INVALID_NUMERAL, 
+        END_OF_FILE
+    };
+    check_expected(expected, sc);
 }
-
-TEST_CASE("Comments are skipped, but leave newline", "[comments]")
-{
-
-}
-
