@@ -69,6 +69,6 @@ void SymbolTable::insert(Token tok)
         tok_table.resize(tok_table.size() * 2);
     }
     int hash = hash_fn(tok.lexeme);
-    tok_table[hash] = std::make_unique<Token>(Token(tok));
+    tok_table[hash] = std::unique_ptr<Token>(new Token(tok));
     used++;
 }
