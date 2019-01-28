@@ -15,9 +15,9 @@ SymbolTable::SymbolTable() : used{0}
         "begin", "end", "const", "array", "integer", "Boolean", "proc", "skip", "read", "write", 
         "call", "if", "fi", "do", "od", "true", "false"
     };
+    int i = 0;
     for (auto s: symbols) {
-        insert(Token(s, lexemes[used]));
-        used++;
+        insert(Token(s, lexemes[i++]));
     }
 }
 
