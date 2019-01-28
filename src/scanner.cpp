@@ -3,7 +3,7 @@
 #include <cassert>
 
 Scanner::Scanner(std::ifstream &program_file, SymbolTable &symbol_table) : 
-    next_char{program_file}, sym_table{symbol_table} 
+   next_char{program_file}, sym_table(symbol_table) 
 {
     // Make sure whitespace is not skipped when iterating over input stream
     program_file >> std::noskipws;

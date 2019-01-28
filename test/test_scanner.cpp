@@ -4,17 +4,6 @@
 #include "scanner.h"
 #include "symbol_table.h"
 
-std::ifstream open_file(std::string s)
-{
-    SymbolTable sym;
-    std::ifstream in_file(s);
-    if (!in_file.good()) {
-        std::cout << "Unable to open test input file " + s << std::endl;
-        assert(false); 
-    }
-    return in_file;
-}
-
 void check_expected(std::vector<Symbol> &expected, Scanner &sc)
 {
     for (auto s: expected) {
@@ -27,7 +16,8 @@ void check_expected(std::vector<Symbol> &expected, Scanner &sc)
 TEST_CASE("Check all valid token types", "[token_types]")
 {
     SymbolTable sym;
-    auto fin = open_file("test/src_files/token_types");
+    std::ifstream fin("test/src_files/token_types");
+    assert(fin.good());
     Scanner sc(fin, sym);
     std::vector<Symbol> expected = {
         PERIOD, COMMA, SEMICOLON, AND, OR, LEFT_BRACKET, LEFT_PARENTHESIS, RIGHT_PARENTHESIS,
@@ -46,7 +36,8 @@ TEST_CASE("Check all valid token types", "[token_types]")
 TEST_CASE("Invalid characters, numerals and identifiers", "[invalid]")
 {
     SymbolTable sym;
-    auto fin = open_file("test/src_files/invalid");
+    std::ifstream fin("test/src_files/invalid");
+    assert(fin.good());
     Scanner sc(fin, sym);
     std::vector<Symbol> expected = {
         INVALID_WORD, INVALID_WORD, INVALID_WORD, NEWLINE, INVALID_CHAR, INVALID_CHAR, 
