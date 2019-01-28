@@ -9,8 +9,9 @@ and runs on the linux lab computers.
 
 From the project root directory run the following commands:
 ```
-cd build/
-cmake ../
+mkdir build
+cd build
+cmake ..
 make
 ```
 This will produce two separate executables - one for the main compiler at build/src/plc, and a 
