@@ -7,11 +7,17 @@
 class Parser
 {
 public:
-    Parser();
+    Parser(std::vector<Token> &input_tokens);
+
+    // Parse input, returning true if syntactictally correct, false otherwise
+    bool verify_syntax();
 
 private:
-    // Compare token with the next token in input and advance if they match
-    void match(Token t);
+    // Check next token in input and advance if symbol matches s, skipping comments and newlines
+    void match(Symbol s);
+
+    // Handle syntax error, currently just crashes;
+    void syntax_error(); 
 
     // Recursive procedures for nonterminals 
     void program();
@@ -52,6 +58,7 @@ private:
     void boolean_symbol();
     void name();    
 
+    std::vector<Token> &input;
     std::vector<Token>::iterator next_token;
 };
 
