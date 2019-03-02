@@ -4,6 +4,7 @@ add_library(compiler
     ../src/token.cpp
     ../src/symbol_table.cpp
     ../src/scanner.cpp
+    ../src/parser.cpp
 )
 
 add_executable(run_tests

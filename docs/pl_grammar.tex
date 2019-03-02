@@ -1,0 +1,66 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{centernot}
+\usepackage{listings, lstautogobble}
+\usepackage[export]{adjustbox}
+% \usepackage[T1]{fontenc}
+% \usepackage{courier}
+
+\let\bf\textbf
+\let\it\textit
+\newcommand{\der}{$\longrightarrow$ }
+\newcommand{\es}{$\varepsilon$ }
+\newcommand{\alt}{\Large$|$ \normalsize }
+
+\begin{document}
+\begin{itemize}[label={}]
+    \item Program \der Block \bf .
+    \item Block \der \bf{begin} DefinitionPart StatementPart \bf{end}
+    \item DefnPart \der Defn \bf ; \alt \es
+    \item Defn \der ConstDefn \alt VarDefn \alt ProcDefn
+    \item ConstDefn \der \bf{const} \bf{identifier} $=$ Constant
+    \item VarDefn \der Type VarList \alt Type \bf{array} Varlist \bf [ Constant \bf ]
+    \item Type \der \bf{integer} \alt \bf {Boolean}
+    \item VarList \der \bf{identifier} VarListEnd
+    \item VarListEnd \der \bf, \bf{identifier} VarListEnd \alt \es
+    \item ProcDefn \der \bf{proc} \bf{identifier} Block
+    \item StmtPart \der Stmt \bf ; \alt \es
+    \item Stmt \der EmptyStmt \alt ReadStmt \alt WriteStmt \alt AssignStmt \alt ProcStmt \alt IfStmt \alt DoStmt
+    \item EmptyStmt \der \bf{skip}
+    \item ReadStmt \der \bf{read} VarAccessList
+    \item VarAccessList \der VarAccess VarAccessListEnd
+    \item VarAccessListEnd \der \bf , VarAccess VarAccessListEnd \alt \es
+    \item WriteStmt \der \bf{write} ExpressionList
+    \item ExpressionList \der Expression ExpressionListEnd
+    \item ExpressionListEnd \der \bf, Expression ExpressionListEnd \alt \es 
+    \item AssignStmt \der VarAccessList \bf{:=} ExpressionList
+    \item ProcStmt \der \bf{call} \bf{identifier}
+    \item IfStmt \der \bf{if} GuardedCmdList \bf{fi}
+    \item DoStmt \der \bf{do} GuardedCmdList \bf{od}
+    \item GuardedCmdList \der GuardedCmd GuardedCmdListEnd
+    \item GuardedCmdListEnd \der [ ] GuardedCmd GuardedCmdListEnd \alt \es
+    \item GuardedCmd \der Expression -$>$ StmtPart
+    \item Expression \der PrimaryExpression ExpressionEnd
+    \item ExpressionEnd \der PrimaryOp PrimaryExpression ExpressionEnd \alt \es
+    \item PrimaryOp \der $\&$ \alt $|$
+    \item PrimaryExpression \der SimpleExpression PrimaryExpressionEnd
+    \item PrimaryExpressionEnd \der RelationalOp SimpleExpression
+    \item RelationalOp \der $<$ \alt $=$ \alt $>$
+    \item SimpleExpression \der $-$ Term SimpleExpressionEnd \alt Term SimpleExpressionEnd
+    \item SimpleExpressionEnd \der AdditionOp Term SimpleExpressionEnd \alt \es
+    \item AdditionOp \der $+$ \alt $-$
+    \item Term \der Factor TermEnd
+    \item TermEnd \der MultiplicationOp Factor TermEnd \alt \es
+    \item Factor \der Constant \alt VarAccess \alt ( Expression ) \alt $~$ Factor
+    \item VarAccess \der \bf{identifier} VarAccessEnd 
+    \item VarAccessEnd IndexedSelector \alt \es
+    \item IndexedSelector \der [ Expression ]
+    \item Constant \der \bf{numeral} \alt BooleanSymbol \alt \bf{identifier}
+    \item BooleanSymbol \der \bf{false} \alt \bf{true}
+\end{itemize}
+
+\end{document}

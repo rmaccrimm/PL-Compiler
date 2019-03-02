@@ -1,14 +1,12 @@
 #include "parser.h"
 #include <cassert>
 
-Parser::Parser(std::vector<Token> &input_tokens): 
+Parser::Parser(std::vector<Token> &input_tokens):
     input{input_tokens}, next_token{input_tokens.begin()} {}
 
 bool Parser::verify_syntax()
 {
-    while (next_token->symbol != END_OF_FILE) {
-
-    }
+    return false;
 }
 
 void Parser::match(Symbol s)
@@ -28,34 +26,46 @@ void Parser::syntax_error()
 
 void Parser::program()
 {
-    if (next_token->symbol == BEGIN)
-    {
-        block();
-        match(PERIOD);
-    }
-    else {
-        syntax_error();
-    }
+    block();
+    match(PERIOD);
 }
 
 void Parser::block()
 {
-
+    match(BEGIN);
+    definition_part();
+    statement_part();
+    match(END);
 }
 
 void Parser::definition_part()
 {
-
+    
+    
 }
 
 void Parser::definition()
 {
-
+    switch (next_token->symbol) 
+    {
+    case CONST:
+        constant_definition();
+        break;
+    case INT:
+    case BOOL:
+        variable_definition();
+        break;
+    case PROC:
+        procedure_definition();
+        break;
+    default:
+        syntax_error();
+    };
 }
 
 void Parser::constant_definition()
 {
-
+    
 }
 
 void Parser::variable_definition()
