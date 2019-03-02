@@ -23,7 +23,8 @@
     \item DefnPart \der Defn \bf ; \alt \es
     \item Defn \der ConstDefn \alt VarDefn \alt ProcDefn
     \item ConstDefn \der \bf{const} \bf{identifier} $=$ Constant
-    \item VarDefn \der Type VarList \alt Type \bf{array} Varlist \bf [ Constant \bf ]
+    \item VarDefn \der Type VarDefnType
+    \item VarDefnType \der VarList \alt \bf{array} VarList [ Constant ]
     \item Type \der \bf{integer} \alt \bf {Boolean}
     \item VarList \der \bf{identifier} VarListEnd
     \item VarListEnd \der \bf, \bf{identifier} VarListEnd \alt \es
@@ -55,6 +56,7 @@
     \item AdditionOp \der $+$ \alt $-$
     \item Term \der Factor TermEnd
     \item TermEnd \der MultiplicationOp Factor TermEnd \alt \es
+    \item MultiplicationOp \der $*$ \alt \textbackslash\: \alt $/$ 
     \item Factor \der Constant \alt VarAccess \alt ( Expression ) \alt $~$ Factor
     \item VarAccess \der \bf{identifier} VarAccessEnd 
     \item VarAccessEnd IndexedSelector \alt \es
