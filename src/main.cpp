@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     std::vector<Token> tokens;
     Compiler compiler(file_in);
     if (compiler.scan(tokens)) {
-        std::cout << "Scan completed without errors. ";
+        std::cout << "Scan completed without errors. " << std::endl;
     }
     Parser parser(tokens);
     parser.verify_syntax();

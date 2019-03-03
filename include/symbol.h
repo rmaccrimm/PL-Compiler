@@ -33,10 +33,10 @@ enum Symbol
     PERIOD,
     COMMA,
     SEMICOLON,
-    LEFT_PARENTHESIS,
-    RIGHT_PARENTHESIS,
-    LEFT_BRACKET,
-    RIGHT_BRACKET,
+    LEFT_PARENTHESIS,   // (
+    RIGHT_PARENTHESIS,  // )
+    LEFT_BRACKET,       // [
+    RIGHT_BRACKET,      // ]
     AND,
     OR,
     NOT,
