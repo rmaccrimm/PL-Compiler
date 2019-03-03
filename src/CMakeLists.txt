@@ -5,4 +5,5 @@ add_executable(plc
     token.cpp
     scanner.cpp
     compiler.cpp
+    parser.cpp
 )

@@ -1,21 +1,37 @@
 #include "parser.h"
+#include <set>
 #include <cassert>
+#include <iostream>
 
 Parser::Parser(std::vector<Token> &input_tokens):
     input{input_tokens}, next_token{input_tokens.begin()} {}
 
 bool Parser::verify_syntax()
 {
-    return false;
+    skip_whitespace();
+    program();
+    return true;   
+}
+
+void Parser::skip_whitespace()
+{
+    while (next_token->symbol == NEWLINE || next_token->symbol == COMMENT) {
+        next_token++;
+    }
 }
 
 void Parser::match(Symbol s)
 {
-    // Temporary - just crash if token does not match
-    assert(s == next_token->symbol);
-    do {
+    // Temporary - just crash if token does not match 
+    if (s != next_token->symbol) {
+        std::cerr << "Error: expected " << SYMBOL_STRINGS.at(s) << " token type but got " 
+                  << SYMBOL_STRINGS.at(next_token->symbol) << " instead" << std::endl;
+        assert(false);
+    }
+    else {
         next_token++;
-    } while (next_token->symbol == NEWLINE || next_token->symbol == COMMENT);
+        skip_whitespace();
+    }    
 }
 
 void Parser::syntax_error()
@@ -40,7 +56,8 @@ void Parser::block()
 
 void Parser::definition_part()
 {
-    
+    std::set<Symbol> first{CONST, INT, BOOL, PROC};
+    std::set<Symbol> follow{SKIP, READ, WRITE, ID, CALL, IF, DO, PERIOD, SEMICOLON};
     
 }
 

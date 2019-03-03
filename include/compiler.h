@@ -16,6 +16,7 @@ public:
     // Constructor takes the filepath of the PL source file to be compiled
     Compiler(std::ifstream &input_file);
 
+
     /* Two versions of scan which perform tokenization on the input file. Return false if errors 
        are detected, true otherwise. When an error is detected, the rest of the line is ignored.
        After 10 errors, scanning is aborted. 

@@ -13,13 +13,16 @@ public:
     bool verify_syntax();
 
 private:
+    // Skip non-meaningful tokens
+    void skip_whitespace();
+
     // Check next token in input and advance if symbol matches s, skipping comments and newlines
     void match(Symbol s);
 
     // Handle syntax error, currently just crashes;
     void syntax_error(); 
 
-    // Recursive procedures for nonterminals 
+    // Recursive procedures for nonterminals
     void program();
     void block();
     void definition_part();

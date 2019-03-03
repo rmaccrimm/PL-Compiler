@@ -1,10 +1,12 @@
 #include "symbol_table.h"
 #include "scanner.h"
+#include "compiler.h"
+#include "parser.h"
 #include <fstream>
 #include <iterator>
 #include <iostream>
 #include <string>
-#include <compiler.h>
+
 #include <algorithm>
 
 const std::string usage_info = "Usage:\n\tplc src_file [-o output_file]";
@@ -46,9 +48,12 @@ int main(int argc, char *argv[])
 
     /* Compilation
     */
+    std::vector<Token> tokens;
     Compiler compiler(file_in);
-    if (compiler.scan(file_out)) {
+    if (compiler.scan(tokens)) {
         std::cout << "Scan completed without errors. ";
     }
+    Parser parser(tokens);
+    parser.verify_syntax();
     std::cout << "Output written to " + output_file << std::endl;
 }
