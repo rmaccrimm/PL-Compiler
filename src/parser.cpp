@@ -98,7 +98,6 @@ void Parser::definition_part()
     else {
         syntax_error();
     }
-    // depth--;
 }
 
 void Parser::definition()
