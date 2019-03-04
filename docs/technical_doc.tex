@@ -100,4 +100,56 @@ The purpose of this program, in its current state, is to perform the scanning an
         Another improvement that could be made is to implement the scanner in a way that more closely resembles a finite-state automaton, rather than with the current conditional based approach I'm using. This would make rigorously describing it's output easier and likely be less prone to bugs, though maybe more difficult or tedious to implement.
 
 
+    \pagebreak
+    \section{PL Grammar}
+    The PL context-free grammar has been slightly modified form the Brinch Hansesn book, and written without the use of extended BNF notation below.
+
+    \begin{itemize}[label={}]
+        \itemsep-0.3em
+        \item Program \der Block \bf .
+        \item Block \der \bf{begin} DefinitionPart StatementPart \bf{end}
+        \item DefnPart \der Defn \bf ; DefnPart \alt \es
+        \item Defn \der ConstDefn \alt VarDefn \alt ProcDefn
+        \item ConstDefn \der \bf{const} \bf{identifier} $=$ Constant
+        \item VarDefn \der Type VarDefnType
+        \item VarDefnType \der VarList \alt \bf{array} VarList [ Constant ]
+        \item Type \der \bf{integer} \alt \bf {Boolean}
+        \item VarList \der \bf{identifier} VarListEnd
+        \item VarListEnd \der \bf, \bf{identifier} VarListEnd \alt \es
+        \item ProcDefn \der \bf{proc} \bf{identifier} Block
+        \item StmtPart \der Stmt \bf ; StmtPart \alt \es
+        \item Stmt \der EmptyStmt \alt ReadStmt \alt WriteStmt \alt AssignStmt \alt ProcStmt \alt IfStmt \alt DoStmt
+        \item EmptyStmt \der \bf{skip}
+        \item ReadStmt \der \bf{read} VarAccessList
+        \item VarAccessList \der VarAccess VarAccessListEnd
+        \item VarAccessListEnd \der \bf , VarAccess VarAccessListEnd \alt \es
+        \item WriteStmt \der \bf{write} ExpressionList
+        \item ExpressionList \der Expression ExpressionListEnd
+        \item ExpressionListEnd \der \bf, Expression ExpressionListEnd \alt \es 
+        \item AssignStmt \der VarAccessList \bf{:=} ExpressionList
+        \item ProcStmt \der \bf{call} \bf{identifier}
+        \item IfStmt \der \bf{if} GuardedCmdList \bf{fi}
+        \item DoStmt \der \bf{do} GuardedCmdList \bf{od}
+        \item GuardedCmdList \der GuardedCmd GuardedCmdListEnd
+        \item GuardedCmdListEnd \der [ ] GuardedCmd GuardedCmdListEnd \alt \es
+        \item GuardedCmd \der Expression -$>$ StmtPart
+        \item Expression \der PrimaryExpression ExpressionEnd
+        \item ExpressionEnd \der PrimaryOp PrimaryExpression ExpressionEnd \alt \es
+        \item PrimaryOp \der $\&$ \alt $|$
+        \item PrimaryExpression \der SimpleExpression PrimaryExpressionEnd
+        \item PrimaryExpressionEnd \der RelationalOp SimpleExpression \alt \es
+        \item RelationalOp \der $<$ \alt $=$ \alt $>$
+        \item SimpleExpression \der $-$ Term SimpleExpressionEnd \alt Term SimpleExpressionEnd
+        \item SimpleExpressionEnd \der AdditionOp Term SimpleExpressionEnd \alt \es
+        \item AdditionOp \der $+$ \alt $-$
+        \item Term \der Factor TermEnd
+        \item TermEnd \der MultiplicationOp Factor TermEnd \alt \es
+        \item MultiplicationOp \der $*$ \alt \textbackslash\: \alt $/$ 
+        \item Factor \der Constant \alt VarAccess \alt ( Expression ) \alt $\sim$ Factor
+        \item VarAccess \der \bf{identifier} VarAccessEnd 
+        \item VarAccessEnd \der IndexedSelector \alt \es
+        \item IndexedSelector \der [ Expression ]
+        \item Constant \der \bf{numeral} \alt \bf{true} \alt \bf{false} \alt \bf{identifier}
+    \end{itemize}
+
 \end{document}
