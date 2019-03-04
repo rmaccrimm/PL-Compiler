@@ -93,12 +93,12 @@ void Parser::definition_part()
         definition_part();
     }
     else if (follow.find(s) != follow.end()) {
-        depth++;
+        depth--;
     }
     else {
         syntax_error();
     }
-    depth--;
+    // depth--;
 }
 
 void Parser::definition()
@@ -223,16 +223,15 @@ void Parser::statement_part()
     if (first.find(s) != first.end()) {
         statement();
         match(SEMICOLON);
-        depth --;
+        depth--;
         statement_part();
     }
     else if (follow.find(s) != follow.end()) {
-        depth++;
+        depth--;
     }
     else {
         syntax_error();
     }
-    depth--;
 }
 
 void Parser::statement()
@@ -305,11 +304,12 @@ void Parser::variable_access_list_end()
         variable_access_list_end();
     }
     else if (first.find(s) != first.end()) {
-        depth++;
+        
     }
     else {
         syntax_error();
     }
+    depth--;
 }
 
 void Parser::write_statement()
@@ -401,14 +401,15 @@ void Parser::guarded_command_list_end()
     if (s == DOUBLE_BRACKET) {
         match(s);
         guarded_command();
+        depth--;
         guarded_command_list_end();
     }
     else if (s == FI || s == OD) {
+        depth--;
     }
     else {
         syntax_error();
     }
-    depth--;
 }
 
 void Parser::guarded_command()
@@ -536,14 +537,15 @@ void Parser::simple_expression_end()
     if (s == ADD || s == SUBTRACT) {
         adding_operator();
         term();
+        depth--;
         simple_expression_end();
     }
     else if (follow.find(s) != follow.end()) {
+        depth--;
     }
     else {
         syntax_error();
     }
-    depth--;
 }
 
 void Parser::adding_operator()
@@ -574,19 +576,20 @@ void Parser::term_end()
 	print("term_end");
 	depth++;
     std::set<Symbol> follow{LESS_THAN, EQUALS, GREATER_THAN, AND, OR, SEMICOLON, COMMA, RIGHT_ARROW,
-        RIGHT_BRACKET, RIGHT_PARENTHESIS};
+        RIGHT_BRACKET, RIGHT_PARENTHESIS, ADD, SUBTRACT};
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s == MODULO) {
         multiplying_operator();
         factor();
+        depth--;
         term_end();
     }
     else if (follow.find(s) != follow.end()) {
+        depth--;
     }
     else {
         syntax_error();
     }
-    depth--;
 }
 
 void Parser::multiplying_operator()
@@ -643,14 +646,19 @@ void Parser::variable_access_end()
 {
 	print("variable_access_end");
 	depth++;
-    std::set<Symbol> follow{};
+    std::set<Symbol> follow{MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, 
+        GREATER_THAN, AND, OR, SEMICOLON, COMMA, RIGHT_ARROW, RIGHT_PARENTHESIS, RIGHT_BRACKET,
+        ASSIGN};
     auto s = next_token->symbol;
     if (s == LEFT_BRACKET) {
         match(s);
         expression();
         match(RIGHT_BRACKET);
     }
-    else if (s == SEMICOLON || s == ASSIGN) {
+    else if (follow.find(s) != follow.end()) {
+    }
+    else {
+        syntax_error();
     }
 	depth--;
 }

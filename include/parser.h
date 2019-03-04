@@ -14,15 +14,16 @@ public:
     bool verify_syntax();
 
 private:
-    // Skip non-meaningful tokens
+    // Skip newline and comment tokens
     void skip_whitespace();
 
-    // Check next token in input and advance if symbol matches s, skipping comments and newlines
+    // Check next token in input and advance if symbol matches s
     void match(Symbol s);
 
-    // Handle syntax error, currently just crashes;
+    // Handle syntax errors, currently just crashes
     void syntax_error(); 
 
+    // Used to print the function call stack 
     void print(std::string msg);
 
     // Recursive procedures for nonterminals
@@ -75,6 +76,7 @@ private:
     std::vector<Token> &input;
     std::vector<Token>::iterator next_token;
     int line;
+    // Used to track height of call stack for printing function calls with indentation
     int depth;
 };
 
