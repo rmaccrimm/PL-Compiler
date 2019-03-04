@@ -51,9 +51,15 @@ int main(int argc, char *argv[])
     std::vector<Token> tokens;
     Compiler compiler(file_in);
     if (compiler.scan(tokens)) {
-        std::cout << "\nScan completed without errors." 
-                  << "\n------------------------------" << std::endl;
+        std::cout << "\nScan completed without errors - ";
+                  
     }
+    for (auto t: tokens) {
+        file_out << SYMBOL_STRINGS.at(t.symbol) << ' ' << t.lexeme << ' ' << t.value << '\n';
+    }
+    file_out.close();
+    std::cout << "Output written to " << output_file 
+              << "\n-----------------------------" << std::endl;
     Parser parser(tokens);
     parser.verify_syntax();
     std::cout << "--------------------------------\n" 

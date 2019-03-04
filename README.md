@@ -1,7 +1,7 @@
 # CPSC 4600 Project Language (PL) Compiler
 Roderick MacCrimmon (single person group, responsible for whole project)
 
-Estimated time spent on project: 10-15 hours (2 weekends - did not really keep track)
+Estimated time spent on project: 10-15 hours for part 1 (scanner) and 8-10 for part 2 (parser)
 
 ## Files & Directory Layout
 (excluding CMake build files)
@@ -10,12 +10,14 @@ Estimated time spent on project: 10-15 hours (2 weekends - did not really keep t
   - technical_doc.pdf
   - **include/** - header files
     - compiler.h
+    - parser.h
     - scanner.h
     - symbol_table.h
     - symbol.h
     - token.h
   - **src/** - implementation files
     - main.cpp - contains main function for plc
+    - parser.cpp
     - compiler.cpp
     - scanner.cpp
     - symbol_table.cpp
@@ -35,7 +37,7 @@ Estimated time spent on project: 10-15 hours (2 weekends - did not really keep t
 
 ## Build Instructions
 This project uses CMake to automatically generate makefiles. It has been tested to ensure it builds
-and runs on the linux lab computers without any compilation or runtime errors.
+on the linux lab computers without any compilation errors.
 
 From the project root directory run the following commands:
 ```
@@ -56,7 +58,8 @@ The source file must always be provided as the first argument. The output file i
 none is provided, output will be written to scanner.out
 
 Two example files are provided to see the output at test/src_files/valid_test_program.pl and 
-test/src_files/error_test_program.pl
+test/src_files/error_test_program.pl. The program runs as expected for valid_test_program.pl on the
+lab computers.
 
 The unit tests can be run from the project root directory with
 ```

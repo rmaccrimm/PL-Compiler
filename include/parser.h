@@ -8,9 +8,15 @@
 class Parser
 {
 public:
+    // Construct a parser to verify the given input represents a syntactically coorect PL program
     Parser(std::vector<Token> &input_tokens);
 
-    // Parse input, returning true if syntactictally correct, false otherwise
+    /*  Parse input and verify it can be derived from the PL language grammar. The call stack is 
+        printed as it runs, showing the structure of the parse tree. 
+        
+        When an error is encountered, the program crashes and prints an error message indicating the
+        line and token where the error occurred.
+    */
     bool verify_syntax();
 
 private:
@@ -71,7 +77,6 @@ private:
     void variable_access_end();
     void indexed_selector();
     void constant();
-    void boolean_symbol();
 
     std::vector<Token> &input;
     std::vector<Token>::iterator next_token;

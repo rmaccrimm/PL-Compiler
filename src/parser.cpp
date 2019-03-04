@@ -680,5 +680,3 @@ void Parser::constant()
         match(s);
     }
 }
-
-    

@@ -9,6 +9,13 @@
 \usepackage[export]{adjustbox}
 \usepackage[T1]{fontenc}
 \usepackage{courier}
+
+\let\bf\textbf
+\let\it\textit
+\newcommand{\der}{$\longrightarrow$ }
+\newcommand{\es}{$\varepsilon$ }
+\newcommand{\alt}{\Large$|$ \normalsize }
+
 \begin{document}
 
 \title{CPSC 4600 Project Language (PL) Compiler \\ \LARGE Technical Documentation}
@@ -18,8 +25,7 @@
 
 \section{Purpose}
 
-The purpose of this program, in its current state, is to perform the scanning stage of compilation 
-for a single PL source file and perform basic error detection. The input file is parsed into tokens, which are stored in an output text file. When an invalid identifier, numeral or other character is detected, an error message is printed to the console along with the line in which the error occurred. 
+The purpose of this program, in its current state, is to perform the scanning and parsing stages of compilation for a single PL source file and perform basic error detection. The input file is parsed into tokens, which are stored in an output text file. When an invalid identifier, numeral or other character is detected, an error message is printed to the console along with the line in which the error occurred. The sequence of tokens is then passed to the parser, which verifies that the sequence is valid according to the language grammar (given at the end of this document). As the parser runs, the call stack, representing the parse tree, is printed. If a syntax error is encountered, a message containing the line on which the error occurred and the problematic token is printed and the program terminates.
 
 \section{Design}
 
@@ -58,6 +64,14 @@ for a single PL source file and perform basic error detection. The input file is
                 \item[-]Tokens are also returned for invalid words, numerals and symbols and unrecognized characters. 
             \end{itemize}
 
+        \item[]\textbf{Parser}
+            \begin{itemize}
+                \item[-] Verifies the input token sequence represents a valid PL program by constructing the parse tree according to the PL language grammar.
+                \item[-] \textbf{verify\_syntax}: Only public method, parses the input sequence. Uses predictive parsing with the recursive descent parsing technique. The class contains a private method corresponding to every non-terminal of the grammar, parsing is started by calling the program method. For a given production rule $A \longrightarrow B_1B_2B_3...$ the method for $A$ works by calling match($B_i$) if $B_i$ is a terminal symbol (token) or calling the method for $B_i$ if it is a non-terminal.
+                \item[-] When multiple production rules are available, the correct one is chosen by checking if the lookahead token (next\_token) is contained in the rule's FIRST set. If the production derives the empty string, the FOLLOW set is checked instead. Both sets have been determined by hand and are hard-coded into the functions. If none of the available production rules can correctly derive the lookahead token, a syntax error is thrown, which currently just prints an error message and crashes the program.
+                \item[-] \textbf{match}: Checks that the lookahead token matches the expected terminal symbol and advances to the next token in the input.
+            \end{itemize}
+
         \item[]\textbf{Compiler}
             \begin{itemize}
                 \item[-] The main "Administration" class which is responsible for creating, managing and using the other component objects. Currently stores scanner and symbol table objects. The constructor takes a reference to an input file stream object as input, which is used to create the scanner object. 
@@ -68,6 +82,16 @@ for a single PL source file and perform basic error detection. The input file is
     \end{itemize}
 
     \section{Limitations/Possible Extensions}
+
+        \subsection{Part II}
+
+        Currently the most lacking part of the parser is in error handling, as the program simply crashes on an invalid program with minimal information given in the error message. Implementing proper panic-mode error handling would be the most obvious next step, skipping input tokens until some point is found from which parsing can continue. It would also be helpful to output more meaningful error messages, such as what was expected to be seen, and using the actual lexemes rather than symbol names. 
+
+        Another possible extension of the parser would be to explicitly produce the parse tree and store it in some sort of tree data structure. This could potentially be useful in producing error messages or in panic-mode error handling. If nothing is found that can follow the current non-terminal, the parser could move back up the tree, looking for something that could follow at any point. A formal parse table could also be constructed, reducing the need for searching first and follow sets, and formally verifying the language is LL(1), excluding the one ambiguity with identifiers.
+
+        Testing is also currently very limited and the parser has only been verified on one program taken from the Brinch Hansen book. Before the next stage I plan to implement some unit tests and try to verify that every control path is followed as expected. 
+
+        \subsection{Part I}
 
         Implementing the rest of the compiler will be the most important thing going forward, but there are some improvements that could be made to the scanner as well. Tokens currently take up more space than they need to by always having a lexeme and a value. For many tokens all we need is the symbol name for it to serve its purpose. While this is a pretty minor improvement, there could be multiple types of tokens inherited from a base class for word tokens, numeral tokens, etc. that only have as much info as needed. Since I already use a table of token pointers in the symbol table, incorporating this polymorphism would be fairly straightforward. Additionally, all lexemes could be stored in a buffer and only an index would be needed in the token rather than the full string.
 
