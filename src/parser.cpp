@@ -7,7 +7,7 @@
 #define INDENT 1
 
 Parser::Parser(std::vector<Token> &input_tokens):
-    input{input_tokens}, next_token{input_tokens.begin()}, line{1}, depth{0} {}
+   input(input_tokens), next_token{input_tokens.begin()}, line{1}, depth{0} {}
 
 void Parser::print(std::string msg) 
 {
