@@ -4,11 +4,13 @@
 #include "token.h"
 #include <vector>
 #include <string>
+#include <map>
+#include <set>
 
 class Parser
 {
 public:
-    // Construct a parser to verify the given input represents a syntactically coorect PL program
+    // Construct a parser to verify the given input represents a syntactically correct PL program
     Parser(std::vector<Token> &input_tokens);
 
     /*  Parse input and verify it can be derived from the PL language grammar. The call stack is 
@@ -78,6 +80,9 @@ private:
     void indexed_selector();
     void constant();
 
+    void init_symbol_sets();
+
+    std::map<std::string, std::set<Symbol>> first, follow;
     std::vector<Token> &input;
     std::vector<Token>::iterator next_token;
     int line;

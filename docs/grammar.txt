@@ -1,0 +1,44 @@
+Prog -> Block .
+Block -> begin DefnPart StatPart end
+DefnPart -> Defn ; | EPSILON
+Defn -> ConstDefn | VarDefn | ProcDefn
+ConstDefn -> const id = Const
+VarDefn -> Type VarDefnType
+VarDefnType -> VarList | array VarList [ Const ]
+Type -> int | bool
+VarList -> id VarListEnd
+VarListEnd -> , id VarListEnd | EPSILON
+ProcDefn -> proc id Block
+StatPart -> Stat ; | EPSILON
+Stat -> EmptyStat | ReadStat | WriteStat | AssignStat | ProcStat | IfStat | DoStat
+EmptyStat -> skip
+ReadStat -> read VarAccessList
+VarAccessList -> VarAccess VarAccessListEnd
+VarAccessListEnd -> , VarAccess VarAccessListEnd | EPSILON
+WriteStat -> write ExpressionList
+ExpressionList -> Expression ExpressionListEnd
+ExpressionListEnd -> , Expression ExpressionListEnd | EPSILON
+AssignStat -> VarAccessList := ExpressionList
+ProcStat -> call id
+IfStat -> if GuardedCmdList fi
+DoStat -> do GuardedCmdList od
+GuardedCmdList -> GuardedCmd GuardedCmdListEnd
+GuardedCmdListEnd -> [] GuardedCmd GuardedCmdListEnd | EPSILON
+GuardedCmd -> Expression arrow StatPart
+Expression -> PrimaryExpression ExpressionEnd
+ExpressionEnd -> PrimaryOp PrimaryExpression ExpressionEnd | EPSILON
+PrimaryOp -> and | or
+PrimaryExpression -> SimpleExpression | PrimaryExpressionEnd
+PrimaryExpressionEnd -> RelationalOp SimpleExpression
+RelationalOp -> < | = | >
+SimpleExpression -> - Term SimpleExpressionEnd | Term SimpleExpressionEnd
+SimpleExpressionEnd -> AdditionOp Term SimpleExpressionEnd | EPSILON
+AdditionOp -> + | -
+Term -> Factor TermEnd
+TermEnd -> MultiplicationOp Factor TermEnd | EPSILON
+MultiplicationOp -> * | / | \
+Factor -> Const | VarAccess | ( Expression ) | ~ Factor
+VarAccess -> id VarAccessEnd
+VarAccessEnd -> IndexedSelector | EPSILON
+IndexedSelector -> [ Expression ]
+Const -> numeral | false | true | id
