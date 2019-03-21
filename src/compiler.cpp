@@ -8,14 +8,11 @@
 Compiler::Compiler(std::ifstream &input_file) : 
     scanner(input_file, sym_table), current_line{1}, error_count{0}, MAX_ERRORS{10} {}
 
-bool Compiler::scan(std::ofstream &output_file)
+bool Compiler::run()
 {
-    auto token_list = tokenize();
-    for (auto t: token_list) {
-        output_file << SYMBOL_STRINGS.at(t.symbol) << ' ' << t.lexeme << ' ' << t.value << '\n';
-    }
-    // False if errors were found in tokenization
-    return error_count == 0;
+    std::vector<Token> input_stream;    
+    scan(input_stream)
+    parser.verify_syntax(input_stream);    
 }
 
 bool Compiler::scan(std::vector<Token> &scanner_output)

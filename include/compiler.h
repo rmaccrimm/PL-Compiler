@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include "scanner.h"
+#include "parser.h"
 #include "symbol_table.h"
 
 /*  An administration class that manages each of the separate compilation stages. Responsible for
@@ -16,22 +17,21 @@ public:
     // Constructor takes the filepath of the PL source file to be compiled
     Compiler(std::ifstream &input_file);
 
+    // start compilation, the main function for Compiler class
+    void run();
 
-    /* Two versions of scan which perform tokenization on the input file. Return false if errors 
-       are detected, true otherwise. When an error is detected, the rest of the line is ignored.
-       After 10 errors, scanning is aborted. 
+    /* Perform tokenization on the input file. Return false if errors are detected, true otherwise. 
+        When an error is detected, the rest of the line is ignored. After 10 errors, scanning is 
+        aborted. 
 
-        The first writes to the given output file with the format:  
-            symbol-name lexeme value (space-separaterd, one token per line)        
-
-        The second simply fills the vector with the tokens rather than write to file 
+        The result is stored in the given vector.
     */
-    bool scan(std::ofstream &output_file);
     bool scan(std::vector<Token> &scanner_output);
 
 private:
     SymbolTable sym_table;
     Scanner scanner;
+    Parser parser;
 
     int current_line;
     int error_count;

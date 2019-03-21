@@ -1,6 +1,6 @@
 Prog -> Block .
 Block -> begin DefnPart StatPart end
-DefnPart -> Defn ; | EPSILON
+DefnPart -> Defn ; DefnPart | EPSILON
 Defn -> ConstDefn | VarDefn | ProcDefn
 ConstDefn -> const id = Const
 VarDefn -> Type VarDefnType
@@ -28,8 +28,8 @@ GuardedCmd -> Expression arrow StatPart
 Expression -> PrimaryExpression ExpressionEnd
 ExpressionEnd -> PrimaryOp PrimaryExpression ExpressionEnd | EPSILON
 PrimaryOp -> and | or
-PrimaryExpression -> SimpleExpression | PrimaryExpressionEnd
-PrimaryExpressionEnd -> RelationalOp SimpleExpression
+PrimaryExpression -> SimpleExpression PrimaryExpressionEnd
+PrimaryExpressionEnd -> RelationalOp SimpleExpression | EPSILON
 RelationalOp -> < | = | >
 SimpleExpression -> - Term SimpleExpressionEnd | Term SimpleExpressionEnd
 SimpleExpressionEnd -> AdditionOp Term SimpleExpressionEnd | EPSILON

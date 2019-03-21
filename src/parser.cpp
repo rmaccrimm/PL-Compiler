@@ -6,6 +6,8 @@
 #define PRINT 1
 #define INDENT 1
 
+bool in_set(Symbol s, std::set<Symbol> set) { return set.find(s) != set.end(); }
+
 Parser::Parser(std::vector<Token> &input_tokens):
    input(input_tokens), next_token{input_tokens.begin()}, line{1}, depth{0} 
 {
@@ -56,6 +58,9 @@ void Parser::match(Symbol s)
 
 void Parser::syntax_error()
 {
+
+    /* idea - search for something that can follow this nonterminal, or one above it
+    */
     // Temporary - just crash if token does not match 
     std::cerr << "Syntax error on line " << line << " for " 
               << SYMBOL_STRINGS.at(next_token->symbol) << " symbol" << std::endl;
@@ -686,68 +691,23 @@ void Parser::constant()
 
 void Parser::init_symbol_sets()
 {
-    first["program"] = {BEGIN};
-    first["block"] = {BEGIN};
-    first["definition_part"] = {CONST, INT, BOOL, PROC};
-    first["definition"] = {};
-    first["constant_definition"] = {};
-    first["variable_definition"] = {};
-    first["variable_definition_type"] = {};
-    first["type_symbol"] = {};
-    first["variable_list"] = {};
-    first["ariable_list_end"] = {};
-    first["procedure_definition"] = {};
-    first["statement_part"] = {};
-    first["statement"] = {};
-    first["empty_statement"] = {};
-    first["read_statement"] = {};
-    first["variable_access_list"] = {};
-    first["variable_access_list_end"] = {};
-    first["write_statement"] = {};
-    first["expression_list"] = {};
-    first["expression_list_end"] = {};
-    first["assignment_statement"] = {};
-    first["procedure_statement"] = {};
-    first["if_statement"] = {};
-    first["do_statement"] = {};
-    first["guarded_command_list"] = {};
-    first["guarded_command_list_end"] = {};
-    first["guarded_command"] = {};
-    first["expression"] = {};
-    first["expression_end"] = {};
-    first["primary_operator"] = {};
-    first["primary_expression"] = {};
-    first["primary_expression_end"] = {};
-    first["relational_operator"] = {};
-    first["simple_expression"] = {};
-    first["simple_expression_end"] = {};
-    first["adding_operator"] = {};
-    first["term"] = {};
-    first["term_end"] = {};
-    first["multiplying_operator"] = {};
-    first["factor"] = {};
-    first["variable_access"] = {};
-    first["variable_access_end"] = {};
-    first["indexed_selector"] = {};
-    first["constant"] = {};
-
     follow["program"] = {};
     follow["block"] = {};
     follow["definition_part"] = {};
     follow["definition"] = {};
     follow["constant_definition"] = {};
-    follow["ariable_definition"] = {};
-    follow["ariable_definition_type"] = {};
+    follow["variable_definition"] = {};
+    follow["variable_definition_type"] = {};
     follow["type_symbol"] = {};
-    follow["ariable_list"] = {};
-    follow["ariable_list_end"] = {};
+    follow["variable_list"] = {};
+    follow["variable_list_end"] = {};
     follow["procedure_definition"] = {};
     follow["statement_part"] = {};
     follow["statement"] = {};
     follow["empty_statement"] = {};
     follow["read_statement"] = {};
-    follow["ariable_access_list"] = {};
-    follow["ariable_access_list_end"] = {};
+    follow["variable_access_list"] = {};
+    follow["variable_access_list_end"] = {};
     follow["write_statement"] = {};
     follow["expression_list"] = {};
     follow["expression_list_end"] = {};

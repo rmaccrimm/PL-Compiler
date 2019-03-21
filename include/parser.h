@@ -80,9 +80,10 @@ private:
     void indexed_selector();
     void constant();
 
+    // Initialize first and follow sets
     void init_symbol_sets();
 
-    std::map<std::string, std::set<Symbol>> first, follow;
+    std::map<std::string, std::set<Symbol>> follow;
     std::vector<Token> &input;
     std::vector<Token>::iterator next_token;
     int line;
