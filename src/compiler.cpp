@@ -16,6 +16,7 @@ bool Compiler::run()
     }
     std::cout << "Scan completed without errors" << std::endl;
     if (parser.verify_syntax(&input_stream)) {
+        std::cout << "Parsing completed with errors" << std::endl;
         return false;
     }
     std::cout << "Parsing completed without errors" << std::endl;

@@ -3,10 +3,24 @@
 #include <cassert>
 #include <set>
 
-#define PRINT 1
+#define PRINT 0
 #define INDENT 1
 
+/*  Two macros are used to reduce some of the typing in the nonterminal functions.
+
+    All nonterminal functions that call another nonterminal continue only if true is returned, 
+    returning false otherwise.
+*/
+#define TRY(func) if(!func()) { return false; }
+
+/*  When matching, continue only if successful, otherwise attempt to synchronize and skip the
+    rest of the noterminal function
+*/
+#define MATCH_AND_SYNC(symbol, nonterminal) if (!match(symbol)) { return synchronize(nonterminal); }
+
+// Slightly simpler syntax for looking up an element of a set 
 bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
+
 
 Parser::Parser(): line{1}, depth{0}, num_errors{0}
 {
@@ -27,7 +41,6 @@ void Parser::print(std::string msg)
 
 int Parser::verify_syntax(std::vector<Token> *input_tokens)
 {
-    // TODO - worry about next_token hitting the end of the input before program completes
     next_token = input_tokens->begin();
     skip_whitespace();
     program();
@@ -36,13 +49,13 @@ int Parser::verify_syntax(std::vector<Token> *input_tokens)
 
 bool Parser::read_next()
 {
-    next_token++;
-    skip_whitespace();
-    if (next_token == END_OF_FILE) {
-        std::cerr << "Error " << num_errors << " on line " << line 
-             << ": Reached end of file while parsing" << std::endl;
+    if (next_token->symbol == END_OF_FILE) {
+        num_errors++;
+        std::cerr << "Fatal Error: Reached end of file while parsing" << std::endl;
         return false;
     }
+    next_token++;
+    skip_whitespace();
     return true;
 }
 
@@ -68,651 +81,722 @@ bool Parser::match(Symbol s)
     return read_next();
 }
 
-bool Parser::match(std::set<Symbol> follow)
+bool Parser::check_follow(std::string non_terminal)
 {
-    if (!sfind(follow, next_token->symbol)) {
-        num_errors++;
-        std::cerr << "Error " << num_errors << " on line " << line << ": Unexpected "
-                  << SYMBOL_STRINGS.at(next_token->symbol) << " symbol" << std::endl; 
-        return false;
-    }
-    return read_next();
+    return sfind(follow[non_terminal], next_token->symbol);
+}
+
+bool Parser::syntax_error(std::string non_terminal)
+{
+    num_errors++;
+    std::cerr << "Error " << num_errors << " on line " << line << ": Unexpected "
+              << SYMBOL_STRINGS.at(next_token->symbol) << " symbol" << std::endl; 
+    return synchronize(non_terminal);
 }
 
 bool Parser::synchronize(std::string non_terminal)
 {
-    /*  Increment rather than call read_next since end of file is a valid follow symbol for 
-        program non-terminal and we don't want to print an error message in that case.
-    */
-    next_token++;
     auto sync = follow[non_terminal];
     while (!sfind(sync, next_token->symbol)) {
         if (!read_next()) {
             return false;
         }
     }
+    std::cerr << "-- Resuming from " << SYMBOL_STRINGS.at(next_token->symbol) << " on line " << line
+              << std::endl; 
+    return true;
 }
 
 bool Parser::program()
 {
-    print("program");
+    std::string nonterm = "program";
+    print(nonterm);
     depth++;
-    if (!block()) { return false; }
+    TRY(block)
     depth--;
-    if (!match(PERIOD)) { 
-        if (!synchronize("program")) {
-            return false;
-        }
+    MATCH_AND_SYNC(PERIOD, nonterm);
+    if (next_token->symbol != END_OF_FILE) {
+        num_errors++;
+        std::cerr << "Error " << num_errors << " on line " << line << ": Expected " 
+                  << SYMBOL_STRINGS.at(END_OF_FILE) << ", found " 
+                  << SYMBOL_STRINGS.at(next_token->symbol) << std::endl;
     }
     return true;
 }
 
 bool Parser::block()
 {
-    return true;
-	print("block");
-    if (!match(BEGIN)) {
-        
-    }
+    std::string nonterm = "block";
+	print(nonterm);
+    MATCH_AND_SYNC(BEGIN, nonterm)
     depth++;
-    definition_part();
-    statement_part();
+    TRY(definition_part)
+    TRY(statement_part)
     depth--;
-    if (!match(END)) {
-
-    }
+    MATCH_AND_SYNC(END, nonterm)
+    return true;
 }
 
-void Parser::definition_part()
+bool Parser::definition_part()
 {
-	print("definition_part");
+    std::string nonterm = "definition_part";
+	print(nonterm);
     depth++;
     std::set<Symbol> first{CONST, INT, BOOL, PROC};
     auto s = next_token->symbol;
-    if (first.find(s) != first.end()) {        
-        definition();
-        match(SEMICOLON);
+    if (sfind(first, s)) {
+        TRY(definition)
+        MATCH_AND_SYNC(SEMICOLON, nonterm)        
         depth--;
-        definition_part();
+        TRY(definition_part)
     }
-    else if (sfind(follow["definition_part"], s)) {
+    // epsilon production
+    else if (!check_follow(nonterm)) {
         depth--;
+        return synchronize(nonterm);
     }
-    else {
-        syntax_error();
-    }
+    return true;
 }
 
-void Parser::definition()
+bool Parser::definition()
 {
-	print("definition");
+    std::string nonterm = "definition";
+	print(nonterm);
     depth++;
     auto s = next_token->symbol;
     if (s == CONST) {
-        constant_definition();
+        TRY(constant_definition)
     }
     else if (s == INT || s == BOOL) {
-        variable_definition();
+        TRY(variable_definition)
     }
     else if (s == PROC) {
-        procedure_definition();
+        TRY(procedure_definition)
     }
     else {
-        syntax_error();
+        return syntax_error(nonterm);
     }
     depth--;
+    return true;
 }
 
-void Parser::constant_definition()
+bool Parser::constant_definition()
 {
-	print("constant_definition");
+    std::string nonterm = "constant_definition";
+	print(nonterm);
     depth++;
-    match(CONST);
-    match(IDENTIFIER);
-    match(EQUALS);
-    constant();
+    MATCH_AND_SYNC(CONST, nonterm)    
+    MATCH_AND_SYNC(IDENTIFIER, nonterm);
+    MATCH_AND_SYNC(EQUALS, nonterm);
+    TRY(constant)
     depth--;
+    return true;
 }
 
-void Parser::variable_definition()
+bool Parser::variable_definition()
 {
 	print("variable_definition");
     depth++;
-    type_symbol();
-    variable_definition_type();
+    TRY(type_symbol)
+    TRY(variable_definition_type)
     depth--;
+    return true;
 }
 
-void Parser::variable_definition_type()
+bool Parser::variable_definition_type()
 {
-	print("variable_definition_type");
+    std::string nonterm = "variable_definition_type";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == IDENTIFIER) {
-        variable_list();
+        TRY(variable_list)
     }
-    else if (s == ARRAY) {
-        match(ARRAY);
-        variable_list();
-        match(LEFT_BRACKET);
-        constant();
-        match(RIGHT_BRACKET);
+    else if (s == ARRAY) { 
+        MATCH_AND_SYNC(ARRAY, nonterm)
+        TRY(variable_list)
+        MATCH_AND_SYNC(LEFT_BRACKET, nonterm)
+        TRY(constant)
+        MATCH_AND_SYNC(RIGHT_BRACKET, nonterm)
     }
     else {
-        syntax_error();
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::type_symbol()
+bool Parser::type_symbol()
 {
-	print("type_symbol");
+    std::string nonterm = "type_symbol";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == INT || s == BOOL) {
-        match(s);
+        MATCH_AND_SYNC(s, nonterm);
     }
     else {
-        syntax_error();
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::variable_list()
+bool Parser::variable_list()
 {
-	print("variable_list");
+    std::string nonterm = "variable_list";
+    print(nonterm);
 	depth++;
-    match(IDENTIFIER);
-    variable_list_end();
+    MATCH_AND_SYNC(IDENTIFIER, nonterm);
+    TRY(variable_list_end)
 	depth--;
+    return true;
 }
 
-void Parser::variable_list_end()
+bool Parser::variable_list_end()
 {
-	print("variable_list_end");
+    std::string nonterm = "variable_list_end";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == COMMA) {
-        match(s);
-        match(IDENTIFIER);
-        variable_list_end();
+        MATCH_AND_SYNC(s, nonterm);
+        MATCH_AND_SYNC(IDENTIFIER, nonterm);
+        TRY(variable_list_end)
     }
-    else if (s == SEMICOLON || s == LEFT_BRACKET) {
+    // epsilon production
+    else if (!check_follow(nonterm)) {
+        return syntax_error(nonterm);
     }
-    else {
-        syntax_error();
-    }	
     depth--;
+    return true;
 }
 
-void Parser::procedure_definition()
+bool Parser::procedure_definition()
 {
-	print("procedure_definition");
+    std::string nonterm = "procedure_definition";
+	print(nonterm);
 	depth++;
-    match(PROC);
-    match(IDENTIFIER);
-    block();
+    MATCH_AND_SYNC(PROC, nonterm)    
+    MATCH_AND_SYNC(IDENTIFIER, nonterm);
+    TRY(block)
 	depth--;
-}
+    return true;
+} 
 
-void Parser::statement_part()
+bool Parser::statement_part()
 {
-	print("statement_part");
+    std::string nonterm = "statement_part";
+	print(nonterm);
 	depth++;
     std::set<Symbol> first{SKIP, READ, WRITE, IDENTIFIER, CALL, IF, DO};
     auto s = next_token->symbol;
-    if (first.find(s) != first.end()) {
-        statement();
-        match(SEMICOLON);
+    if (sfind(first, s)) {
+        TRY(statement)
+        MATCH_AND_SYNC(SEMICOLON, nonterm)        
         depth--;
-        statement_part();
+        TRY(statement_part)
     }
-    else if (sfind(follow["statement_part"], s)) {
+    // epsilon production
+    else if (!check_follow(nonterm)) {
         depth--;
+        return syntax_error(nonterm);
     }
-    else {
-        syntax_error();
-    }
+    return true;
 }
 
-void Parser::statement()
+bool Parser::statement()
 {
-	print("statement");
+    std::string nonterm = "statement";
+	print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == SKIP) {
-        empty_statement();
+        TRY(empty_statement)
     }
     else if (s == READ) {
-        read_statement();
+        TRY(read_statement)
     }
     else if (s == WRITE) {
-        write_statement();
+        TRY(write_statement)
     }
     else if (s == IDENTIFIER) {
-        assignment_statement();
+        TRY(assignment_statement)
     }
     else if (s == CALL) {
-        procedure_statement();
+        TRY(procedure_statement)
     }
     else if (s == IF) {
-        if_statement();
+        TRY(if_statement)
     }
     else if (s == DO) {
-        do_statement();
+        TRY(do_statement)
     }
     else {
-        syntax_error();
+        syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::empty_statement()
+bool Parser::empty_statement()
 {
-	print("empty_statement");
+    std::string nonterm = "empty_statement";
+	print(nonterm);
 	depth++;
-    match(SKIP);
+    MATCH_AND_SYNC(SKIP, nonterm)
 	depth--;
+    return true;
 }
 
-void Parser::read_statement()
+bool Parser::read_statement()
 {
-	print("read_statement");
+    std::string nonterm = "read_statement";
+	print(nonterm);
 	depth++;
-    match(READ);
-    variable_access_list();
+    MATCH_AND_SYNC(READ, nonterm)
+    TRY(variable_access_list)
 	depth--;
+    return true;
 }
 
-void Parser::variable_access_list()
+bool Parser::variable_access_list()
 {
 	print("variable_access_list");
 	depth++;
-    variable_access();
-    variable_access_list_end();
+    TRY(variable_access)
+    TRY(variable_access_list_end)
 	depth--;
+    return true;
 }
 
-void Parser::variable_access_list_end()
+bool Parser::variable_access_list_end()
 {
-	print("variable_access_list_end");
+    std::string nonterm = "variable_access_list_end";
+    print(nonterm);
 	depth++;
     std::set<Symbol> first{SEMICOLON, ASSIGN};
     auto s = next_token->symbol;
     if (s == COMMA) {
-        match(COMMA);
-        variable_access();
-        variable_access_list_end();
+        MATCH_AND_SYNC(COMMA, nonterm);
+        TRY(variable_access)
+        TRY(variable_access_list_end)
     }
-    else if (sfind(follow["variable_access_list_end"], s)) {
-        
-    }
-    else {
-        syntax_error();
+    // epsilon production 
+    else if (!check_follow(nonterm)) {
+        return syntax_error(nonterm);
     }
     depth--;
+    return true;
 }
 
-void Parser::write_statement()
+bool Parser::write_statement()
 {
-	print("write_statement");
+    std::string nonterm = "write_statement";
+	print(nonterm);
 	depth++;
-    match(WRITE);
-    expression_list();
+    MATCH_AND_SYNC(WRITE, nonterm)
+    TRY(expression_list)
 	depth--;
+    return true;
 }
 
-void Parser::expression_list()
+bool Parser::expression_list()
 {
 	print("expression_list");
 	depth++;
-    expression();
-    expression_list_end();
+    TRY(expression)
+    TRY(expression_list_end)
 	depth--;
+    return true;
 }
 
-void Parser::expression_list_end()
+bool Parser::expression_list_end()
 {
-	print("expression_list_end");
+    std::string nonterm = "expression_list_end";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == COMMA) {
-        match(s);
-        expression();
-        expression_list_end();
+        MATCH_AND_SYNC(s, nonterm);
+        TRY(expression)
+        TRY(expression_list_end)
     }
-    else if (s == SEMICOLON) {
+    // epsilon production 
+    else if (!check_follow(nonterm)) {
+        return syntax_error(nonterm);
     }
     depth--;
+    return true;
 }
 
-void Parser::assignment_statement()
+bool Parser::assignment_statement()
 {
-	print("assignment_statement");
+    std::string nonterm = "assignment_statement";
+    print(nonterm);
 	depth++;
-    variable_access_list();
-    match(ASSIGN);
-    expression_list();
+    TRY(variable_access_list)
+    MATCH_AND_SYNC(ASSIGN, nonterm);
+    TRY(expression_list)
 	depth--;
+    return true;
 }
 
-void Parser::procedure_statement()
+bool Parser::procedure_statement()
 {
-	print("procedure_statement");
+    std::string nonterm = "procedure_statement";
+	print(nonterm);
 	depth++;
-    match(CALL);
-    match(IDENTIFIER);
+    MATCH_AND_SYNC(CALL, nonterm);
+    MATCH_AND_SYNC(IDENTIFIER, nonterm);
 	depth--;
+    return true;
 }
 
-void Parser::if_statement()
+bool Parser::if_statement()
 {
-	print("if_statement");
+	std::string nonterm = "if_statement";
+    print(nonterm);
 	depth++;
-    match(IF);
-    guarded_command_list();
-    match(FI);
+    MATCH_AND_SYNC(IF, nonterm);
+    TRY(guarded_command_list)
+    MATCH_AND_SYNC(FI, nonterm);
 	depth--;
+    return true;
 }
 
-void Parser::do_statement()
+bool Parser::do_statement()
 {
-	print("do_statement");
+	std::string nonterm = "do_statement";
+    print(nonterm);
 	depth++;
-    match(DO);
-    guarded_command_list();
-    match(OD);
+    MATCH_AND_SYNC(DO, nonterm);
+    TRY(guarded_command_list)
+    MATCH_AND_SYNC(OD, nonterm);
 	depth--;
+    return true;
 }
 
-void Parser::guarded_command_list()
+bool Parser::guarded_command_list()
 {
 	print("guarded_command_list");
 	depth++;
-    guarded_command();
-    guarded_command_list_end();
+    TRY(guarded_command)
+    TRY(guarded_command_list_end)
 	depth--;
+    return true;
 }
 
-void Parser::guarded_command_list_end()
+bool Parser::guarded_command_list_end()
 {
-	print("guarded_command_list_end");
+    std::string nonterm = "guarded_command_list_end";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == DOUBLE_BRACKET) {
-        match(s);
-        guarded_command();
+        MATCH_AND_SYNC(s, nonterm);
+        TRY(guarded_command)
         depth--;
-        guarded_command_list_end();
+        TRY(guarded_command_list_end)
     }
-    else if (sfind(follow["guarded_command_list_end"], s)) {
+    // epsilon production 
+    else if (!check_follow(nonterm)) {
         depth--;
+        return syntax_error(nonterm);
     }
-    else {
-        syntax_error();
-    }
+    return true;
 }
 
-void Parser::guarded_command()
+bool Parser::guarded_command()
 {
-	print("guarded_command");
+    std::string nonterm = "guarded_command";
+    print(nonterm);
 	depth++;
-    expression();
-    match(RIGHT_ARROW);
-    statement_part();
+    TRY(expression)
+    MATCH_AND_SYNC(RIGHT_ARROW, nonterm);
+    TRY(statement_part)
 	depth--;
+    return true;
 }
 
-void Parser::expression()
+bool Parser::expression()
 {
 	print("expression");
 	depth++;
-    primary_expression();
-    expression_end();
+    TRY(primary_expression)
+    TRY(expression_end)
 	depth--;
+    return true;
 }
 
-void Parser::expression_end()
+bool Parser::expression_end()
 {
-	print("expression_end");
+    std::string nonterm = "expression_end";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
-        primary_operator();
-        primary_expression();
-        expression_end();
+        TRY(primary_operator)
+        TRY(primary_expression)
+        TRY(expression_end)
     }
-    else if (sfind(follow["expression_end"], s)) {
-
-    }
-    else {
-        syntax_error();
+    // epsilon production 
+    else if (!check_follow(nonterm)) {
+        return syntax_error(nonterm);
     }
     depth--;
+    return true;
 }
 
-void Parser::primary_operator()
+bool Parser::primary_operator()
 {
-	print("primary_operator");
+    std::string nonterm = "primary_operator";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
         match(s);
     }
     else {
-        syntax_error();
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::primary_expression()
+bool Parser::primary_expression()
 {
 	print("primary_expression");
 	depth++;
-    simple_expression();
-    primary_expression_end();
+    TRY(simple_expression)
+    TRY(primary_expression_end)
 	depth--;
+    return true;
 }
 
-void Parser::primary_expression_end()
+bool Parser::primary_expression_end()
 {
-	print("primary_expression_end");
+    std::string nonterm = "primary_expression_end"; 
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == GREATER_THAN || s == EQUALS) {
-        relational_operator();
-        simple_expression();
+        TRY(relational_operator)
+        TRY(simple_expression)
     }
-    else if (sfind(follow["primary_expression_end"], s)) {
-
-    }
-    else {
-        syntax_error();
+    // epsilon production 
+    else if (!check_follow(nonterm)) {
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::relational_operator()
+bool Parser::relational_operator()
 {
-	print("relational_operator");
+    std::string nonterm = "relational_operator";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == EQUALS || s == GREATER_THAN) {
         match(s);
     }
     else {
-        syntax_error();
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::simple_expression()
+bool Parser::simple_expression()
 {
-	print("simple_expression");
+    std::string nonterm = "simple_expression";
+    print(nonterm);
 	depth++;
     std::set<Symbol> first{NOT, LEFT_PARENTHESIS, NUMERAL, TRUE_KEYWORD, FALSE_KEYWORD, IDENTIFIER};
     auto s = next_token->symbol;
     if (s == SUBTRACT) {
         match(s);
-        term();
-        simple_expression_end();
+        TRY(term)
+        TRY(simple_expression_end)
     }
-    else if (first.find(s) != first.end()) {
-        term();
-        simple_expression_end();
+    else if (sfind(first, s)) {
+        TRY(term)
+        TRY(simple_expression_end)
     }
     else {
-        syntax_error();
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::simple_expression_end()
+bool Parser::simple_expression_end()
 {
-	print("simple_expression_end");
+    std::string nonterm = "simple_expression_end";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == ADD || s == SUBTRACT) {
-        adding_operator();
-        term();
+        TRY(adding_operator)
+        TRY(term)
         depth--;
-        simple_expression_end();
+        TRY(simple_expression_end)
     }
-    else if (sfind(follow["simple_expression_end"], s)) {
+    // epsilon production 
+    else if (!check_follow(nonterm)) {
         depth--;
+        return syntax_error(nonterm);
     }
-    else {
-        syntax_error();
-    }
+    return true;    
 }
 
-void Parser::adding_operator()
+bool Parser::adding_operator()
 {
-	print("adding_operator");
+    std::string nonterm = "adding_operator";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == ADD || s == OR) {
         match(s);
     }
     else {
-        syntax_error();
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::term()
+bool Parser::term()
 {
-	print("term");
+    std::string nonterm = "term";
+	print(nonterm);
 	depth++;
-    factor();
-    term_end();
+    TRY(factor)
+    TRY(term_end)
 	depth--;
+    return true;
 }
 
-void Parser::term_end()
+bool Parser::term_end()
 {
-	print("term_end");
+    std::string nonterm = "term_end";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s == MODULO) {
-        multiplying_operator();
-        factor();
+        TRY(multiplying_operator)
+        TRY(factor)
         depth--;
-        term_end();
+        TRY(term_end)
     }
-    else if (sfind(follow["term_end"], s)) {
+    // epsilon production 
+    else if (!check_follow(nonterm)) {
         depth--;
+        return syntax_error(nonterm);
     }
-    else {
-        syntax_error();
-    }
+    return true;
 }
 
-void Parser::multiplying_operator()
+bool Parser::multiplying_operator()
 {
-	print("multiplying_operator");
+    std::string nonterm = "multiplying_operator";
+    print(nonterm);
 	depth++;
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s ==  MODULO) {
         match(s);
     }
     else {
-        syntax_error();
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::factor()
+bool Parser::factor()
 {
-	print("factor");
+    std::string nonterm = "factor";
+    print(nonterm);
 	depth++;
     // LL(1) issue - does not correctly decide between VarAccess and Constant
     auto s = next_token->symbol;
     if (s == LEFT_PARENTHESIS) {
         match(s);
-        expression();
-        match(RIGHT_PARENTHESIS);
+        TRY(expression)
+        MATCH_AND_SYNC(RIGHT_PARENTHESIS, nonterm);
     }
     else if (s == IDENTIFIER) {
-        variable_access();
+        TRY(variable_access)
     }
     else if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD || s == IDENTIFIER) {
-        constant();
+        TRY(constant)
     }
     else if (s == NOT) {
         match(s);
-        factor();
+        TRY(factor)
     }
     else {
-        syntax_error();
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::variable_access()
+bool Parser::variable_access()
 {
-	print("variable_access");
+    std::string nonterm = "variable_access";
+    print(nonterm);
 	depth++;
-    match(IDENTIFIER);
-    variable_access_end();
+    MATCH_AND_SYNC(IDENTIFIER, nonterm)
+    TRY(variable_access_end)
 	depth--;
+    return true;
 }
 
-void Parser::variable_access_end()
+bool Parser::variable_access_end()
 {
-	print("variable_access_end");
+    std::string nonterm = "variable_access_end";
+    print(nonterm);
 	depth++;    
     auto s = next_token->symbol;
     if (s == LEFT_BRACKET) {
-        match(s);
-        expression();
-        match(RIGHT_BRACKET);
+        MATCH_AND_SYNC(s, nonterm)
+        TRY(expression)
+        MATCH_AND_SYNC(RIGHT_BRACKET, nonterm)
     }
-    else if (sfind(follow["variable_access_end"], s)) {
-    }
-    else {
-        syntax_error();
+    // epsilon production 
+    else if (!check_follow(nonterm)) {
+        return syntax_error(nonterm);
     }
 	depth--;
+    return true;
 }
 
-void Parser::indexed_selector()
+bool Parser::indexed_selector()
 {
-	print("indexed_selector");
+    std::string nonterm = "indexed_selector";
+    print(nonterm);
 	depth++;
-    match(LEFT_BRACKET);
-    expression();
+    MATCH_AND_SYNC(LEFT_BRACKET, nonterm);
+    TRY(expression)
     match(RIGHT_BRACKET);
 	depth--;
+    return true;
 }
 
-void Parser::constant()
+bool Parser::constant()
 {
-	print("constant");
+    std::string nonterm = "constant";
+	print(nonterm);
     auto s = next_token->symbol;
     if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD || s == IDENTIFIER) {
         match(s);
     }
+    else {
+        return syntax_error(nonterm);
+    }
+    return true;
 }
 
 void Parser::init_symbol_sets()
@@ -781,4 +865,5 @@ void Parser::init_symbol_sets()
     follow["constant"] = 
         {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, AND, OR, 
          RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+
 }

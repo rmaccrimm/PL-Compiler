@@ -30,9 +30,13 @@ private:
 
     // Check next token in input and advance if symbol matches s
     bool match(Symbol s);
-    bool match(std::set<Symbol> s);
 
-    // When in an error state, attempt to find an input symbol from which parsing can continue
+    // When none of the predict symbols are found, print error message and attempt to synchronize
+    bool syntax_error(std::string non_terminal);
+
+    bool check_follow(std::string non_terminal);
+
+    // When in an error state, skip input symbols until one is found from which parsing can continue
     bool synchronize(std::string non_terminal); 
 
     // Used to print the function call stack 
