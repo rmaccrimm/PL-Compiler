@@ -34,6 +34,18 @@ int Parser::verify_syntax(std::vector<Token> *input_tokens)
     return num_errors;
 }
 
+bool Parser::read_next()
+{
+    next_token++;
+    skip_whitespace();
+    if (next_token == END_OF_FILE) {
+        std::cerr << "Error " << num_errors << " on line " << line 
+             << ": Reached end of file while parsing" << std::endl;
+        return false;
+    }
+    return true;
+}
+
 void Parser::skip_whitespace()
 {
     while (next_token->symbol == NEWLINE || next_token->symbol == COMMENT) {
@@ -44,48 +56,71 @@ void Parser::skip_whitespace()
     }
 }
 
-void Parser::match(Symbol s)
+bool Parser::match(Symbol s)
 {
     if (s != next_token->symbol) {
-        std::cerr << "Error in match" << " for " << SYMBOL_STRINGS.at(next_token->symbol) 
-                  << " symbol" << std::endl;
-        syntax_error();
+        num_errors++;
+        std::cerr << "Error " << num_errors << " on line " << line << ": Expected " 
+                  << SYMBOL_STRINGS.at(s) << ", found " << SYMBOL_STRINGS.at(next_token->symbol) 
+                  << std::endl;
+        return false;
     }
-    else {
-        next_token++;
-        skip_whitespace();
-    }    
+    return read_next();
 }
 
-void Parser::syntax_error()
+bool Parser::match(std::set<Symbol> follow)
 {
-
-    /* idea - search for something that can follow this nonterminal, or one above it
-    */
-    // Temporary - just crash if token does not match 
-    std::cerr << "Syntax error on line " << line << " for " 
-              << SYMBOL_STRINGS.at(next_token->symbol) << " symbol" << std::endl;
-    assert(false);
+    if (!sfind(follow, next_token->symbol)) {
+        num_errors++;
+        std::cerr << "Error " << num_errors << " on line " << line << ": Unexpected "
+                  << SYMBOL_STRINGS.at(next_token->symbol) << " symbol" << std::endl; 
+        return false;
+    }
+    return read_next();
 }
 
-void Parser::program()
+bool Parser::synchronize(std::string non_terminal)
+{
+    /*  Increment rather than call read_next since end of file is a valid follow symbol for 
+        program non-terminal and we don't want to print an error message in that case.
+    */
+    next_token++;
+    auto sync = follow[non_terminal];
+    while (!sfind(sync, next_token->symbol)) {
+        if (!read_next()) {
+            return false;
+        }
+    }
+}
+
+bool Parser::program()
 {
     print("program");
     depth++;
-    block();
+    if (!block()) { return false; }
     depth--;
-    match(PERIOD);
+    if (!match(PERIOD)) { 
+        if (!synchronize("program")) {
+            return false;
+        }
+    }
+    return true;
 }
 
-void Parser::block()
+bool Parser::block()
 {
+    return true;
 	print("block");
-    match(BEGIN);
+    if (!match(BEGIN)) {
+        
+    }
     depth++;
     definition_part();
     statement_part();
     depth--;
-    match(END);
+    if (!match(END)) {
+
+    }
 }
 
 void Parser::definition_part()
