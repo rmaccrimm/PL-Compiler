@@ -6,7 +6,7 @@
 #define PRINT 1
 #define INDENT 1
 
-bool in_set(Symbol s, std::set<Symbol> set) { return set.find(s) != set.end(); }
+bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
 
 Parser::Parser(): line{1}, depth{0}, num_errors{0}
 {
@@ -93,7 +93,6 @@ void Parser::definition_part()
 	print("definition_part");
     depth++;
     std::set<Symbol> first{CONST, INT, BOOL, PROC};
-    std::set<Symbol> follow{SKIP, READ, WRITE, IDENTIFIER, CALL, IF, DO, PERIOD, SEMICOLON};
     auto s = next_token->symbol;
     if (first.find(s) != first.end()) {        
         definition();
@@ -101,7 +100,7 @@ void Parser::definition_part()
         depth--;
         definition_part();
     }
-    else if (follow.find(s) != follow.end()) {
+    else if (sfind(follow["definition_part"], s)) {
         depth--;
     }
     else {
@@ -226,7 +225,6 @@ void Parser::statement_part()
 	print("statement_part");
 	depth++;
     std::set<Symbol> first{SKIP, READ, WRITE, IDENTIFIER, CALL, IF, DO};
-    std::set<Symbol> follow{END, DOUBLE_BRACKET, FI, OD};
     auto s = next_token->symbol;
     if (first.find(s) != first.end()) {
         statement();
@@ -234,7 +232,7 @@ void Parser::statement_part()
         depth--;
         statement_part();
     }
-    else if (follow.find(s) != follow.end()) {
+    else if (sfind(follow["statement_part"], s)) {
         depth--;
     }
     else {
@@ -311,7 +309,7 @@ void Parser::variable_access_list_end()
         variable_access();
         variable_access_list_end();
     }
-    else if (first.find(s) != first.end()) {
+    else if (sfind(follow["variable_access_list_end"], s)) {
         
     }
     else {
@@ -412,7 +410,7 @@ void Parser::guarded_command_list_end()
         depth--;
         guarded_command_list_end();
     }
-    else if (s == FI || s == OD) {
+    else if (sfind(follow["guarded_command_list_end"], s)) {
         depth--;
     }
     else {
@@ -443,14 +441,14 @@ void Parser::expression_end()
 {
 	print("expression_end");
 	depth++;
-    std::set<Symbol> follow{COMMA, SEMICOLON, RIGHT_ARROW, RIGHT_BRACKET, RIGHT_PARENTHESIS};
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
         primary_operator();
         primary_expression();
         expression_end();
     }
-    else if (follow.find(s) != follow.end()) {
+    else if (sfind(follow["expression_end"], s)) {
+
     }
     else {
         syntax_error();
@@ -485,14 +483,13 @@ void Parser::primary_expression_end()
 {
 	print("primary_expression_end");
 	depth++;
-    std::set<Symbol> follow{AND, OR, COMMA, SEMICOLON, RIGHT_ARROW, RIGHT_PARENTHESIS, 
-        RIGHT_BRACKET};
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == GREATER_THAN || s == EQUALS) {
         relational_operator();
         simple_expression();
     }
-    else if (follow.find(s) != follow.end()) {
+    else if (sfind(follow["primary_expression_end"], s)) {
+
     }
     else {
         syntax_error();
@@ -539,8 +536,6 @@ void Parser::simple_expression_end()
 {
 	print("simple_expression_end");
 	depth++;
-    std::set<Symbol> follow{LESS_THAN, EQUALS, GREATER_THAN, AND, OR, SEMICOLON, COMMA, RIGHT_ARROW, 
-        RIGHT_BRACKET, RIGHT_PARENTHESIS};
     auto s = next_token->symbol;
     if (s == ADD || s == SUBTRACT) {
         adding_operator();
@@ -548,7 +543,7 @@ void Parser::simple_expression_end()
         depth--;
         simple_expression_end();
     }
-    else if (follow.find(s) != follow.end()) {
+    else if (sfind(follow["simple_expression_end"], s)) {
         depth--;
     }
     else {
@@ -583,8 +578,6 @@ void Parser::term_end()
 {
 	print("term_end");
 	depth++;
-    std::set<Symbol> follow{LESS_THAN, EQUALS, GREATER_THAN, AND, OR, SEMICOLON, COMMA, RIGHT_ARROW,
-        RIGHT_BRACKET, RIGHT_PARENTHESIS, ADD, SUBTRACT};
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s == MODULO) {
         multiplying_operator();
@@ -592,7 +585,7 @@ void Parser::term_end()
         depth--;
         term_end();
     }
-    else if (follow.find(s) != follow.end()) {
+    else if (sfind(follow["term_end"], s)) {
         depth--;
     }
     else {
@@ -653,17 +646,14 @@ void Parser::variable_access()
 void Parser::variable_access_end()
 {
 	print("variable_access_end");
-	depth++;
-    std::set<Symbol> follow{MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, 
-        GREATER_THAN, AND, OR, SEMICOLON, COMMA, RIGHT_ARROW, RIGHT_PARENTHESIS, RIGHT_BRACKET,
-        ASSIGN};
+	depth++;    
     auto s = next_token->symbol;
     if (s == LEFT_BRACKET) {
         match(s);
         expression();
         match(RIGHT_BRACKET);
     }
-    else if (follow.find(s) != follow.end()) {
+    else if (sfind(follow["variable_access_end"], s)) {
     }
     else {
         syntax_error();
@@ -724,9 +714,9 @@ void Parser::init_symbol_sets()
     follow["primary_operator"] = {SUBTRACT, LEFT_PARENTHESIS, NOT, NUMERAL, FALSE_KEYWORD, 
         TRUE_KEYWORD, TRUE_KEYWORD, IDENTIFIER};
     follow["primary_expression"] = 
-        {AND, OR, RIGHT_ARROW, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+        {AND, OR, RIGHT_ARROW, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
     follow["primary_expression_end"] = 
-        {AND, OR, RIGHT_ARROW, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+        {AND, OR, RIGHT_ARROW, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
     follow["relational_operator"] = 
         {SUBTRACT, LEFT_PARENTHESIS, NOT, NUMERAL, FALSE_KEYWORD, TRUE_KEYWORD, IDENTIFIER};
     follow["simple_expression"] = {LESS_THAN, EQUALS, GREATER_THAN, AND, OR, RIGHT_BRACKET, 
@@ -741,14 +731,19 @@ void Parser::init_symbol_sets()
         RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
     follow["multiplying_operator"] = 
         {LEFT_BRACKET, NOT, NUMERAL, FALSE_KEYWORD, TRUE_KEYWORD, IDENTIFIER};
-    follow["factor"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
-        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
-    follow["variable_access"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
-        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON, ASSIGN};
-    follow["variable_access_end"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
-        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON, ASSIGN};
-    follow["indexed_selector"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
-        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON, ASSIGN};
-    follow["constant"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
-        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["factor"] = 
+        {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, AND, OR, 
+         RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["variable_access"] = 
+        {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, AND, OR, 
+         RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON, ASSIGN};
+    follow["variable_access_end"] = 
+        {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, AND, OR, 
+         RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON, ASSIGN};
+    follow["indexed_selector"] = 
+        {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, AND, OR, 
+         RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON, ASSIGN};
+    follow["constant"] = 
+        {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, AND, OR, 
+         RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
 }
