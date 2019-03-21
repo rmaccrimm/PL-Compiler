@@ -11,8 +11,12 @@ Compiler::Compiler(std::ifstream &input_file) :
 bool Compiler::run()
 {
     std::vector<Token> input_stream;    
-    scan(input_stream)
-    parser.verify_syntax(input_stream);    
+    if (scan(input_stream)) {
+        std::cout << "Scan completed without errors" << std::endl;
+    }
+    if (parser.verify_syntax(&input_stream)) {
+        std::cout << "Parsing completed without errors" << std::endl;
+    }
 }
 
 bool Compiler::scan(std::vector<Token> &scanner_output)

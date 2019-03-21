@@ -11,7 +11,7 @@ class Parser
 {
 public:
     // Construct a parser to verify the given input represents a syntactically correct PL program
-    Parser(std::vector<Token> &input_tokens);
+    Parser();
 
     /*  Parse input and verify it can be derived from the PL language grammar. The call stack is 
         printed as it runs, showing the structure of the parse tree. 
@@ -19,7 +19,7 @@ public:
         When an error is encountered, the program crashes and prints an error message indicating the
         line and token where the error occurred.
     */
-    bool verify_syntax();
+    bool verify_syntax(std::vector<Token> *input_tokens);
 
 private:
     // Skip newline and comment tokens
@@ -84,11 +84,11 @@ private:
     void init_symbol_sets();
 
     std::map<std::string, std::set<Symbol>> follow;
-    std::vector<Token> &input;
     std::vector<Token>::iterator next_token;
     int line;
     // Used to track height of call stack for printing function calls with indentation
     int depth;
+    int num_errors;
 };
 
 #endif

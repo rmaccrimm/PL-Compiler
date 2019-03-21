@@ -8,8 +8,7 @@
 
 bool in_set(Symbol s, std::set<Symbol> set) { return set.find(s) != set.end(); }
 
-Parser::Parser(std::vector<Token> &input_tokens):
-   input(input_tokens), next_token{input_tokens.begin()}, line{1}, depth{0} 
+Parser::Parser(): line{1}, depth{0}, num_errors{0}
 {
     init_symbol_sets();
 }
@@ -26,11 +25,13 @@ void Parser::print(std::string msg)
     }
 }
 
-bool Parser::verify_syntax()
+bool Parser::verify_syntax(std::vector<Token> *input_tokens)
 {
+    // TODO - worry about next_token hitting the end of the input before program completes
+    next_token = input_tokens->begin();
     skip_whitespace();
     program();
-    return true;   
+    return num_errors == 0;
 }
 
 void Parser::skip_whitespace()
@@ -691,48 +692,63 @@ void Parser::constant()
 
 void Parser::init_symbol_sets()
 {
-    follow["program"] = {};
-    follow["block"] = {};
-    follow["definition_part"] = {};
-    follow["definition"] = {};
-    follow["constant_definition"] = {};
-    follow["variable_definition"] = {};
-    follow["variable_definition_type"] = {};
-    follow["type_symbol"] = {};
-    follow["variable_list"] = {};
-    follow["variable_list_end"] = {};
-    follow["procedure_definition"] = {};
-    follow["statement_part"] = {};
-    follow["statement"] = {};
-    follow["empty_statement"] = {};
-    follow["read_statement"] = {};
-    follow["variable_access_list"] = {};
-    follow["variable_access_list_end"] = {};
-    follow["write_statement"] = {};
-    follow["expression_list"] = {};
-    follow["expression_list_end"] = {};
-    follow["assignment_statement"] = {};
-    follow["procedure_statement"] = {};
-    follow["if_statement"] = {};
-    follow["do_statement"] = {};
-    follow["guarded_command_list"] = {};
-    follow["guarded_command_list_end"] = {};
-    follow["guarded_command"] = {};
-    follow["expression"] = {};
-    follow["expression_end"] = {};
-    follow["primary_operator"] = {};
-    follow["primary_expression"] = {};
-    follow["primary_expression_end"] = {};
-    follow["relational_operator"] = {};
-    follow["simple_expression"] = {};
-    follow["simple_expression_end"] = {};
-    follow["adding_operator"] = {};
-    follow["term"] = {};
-    follow["term_end"] = {};
-    follow["multiplying_operator"] = {};
-    follow["factor"] = {};
-    follow["ariable_access"] = {};
-    follow["ariable_access_end"] = {};
-    follow["indexed_selector"] = {};
-    follow["constant"] = {};
+    follow["program"] = {END_OF_FILE};
+    follow["block"] = {PERIOD, SEMICOLON};
+    follow["definition_part"] = {SKIP, READ, WRITE, CALL, DO, READ, IF, IDENTIFIER, END};
+    follow["definition"] = {SEMICOLON};
+    follow["constant_definition"] = {SEMICOLON};
+    follow["variable_definition"] = {SEMICOLON};
+    follow["variable_definition_type"] = {SEMICOLON};
+    follow["type_symbol"] = {ARRAY, IDENTIFIER};
+    follow["variable_list"] = {LEFT_BRACKET, SEMICOLON};
+    follow["variable_list_end"] = {LEFT_BRACKET, SEMICOLON};
+    follow["procedure_definition"] = {SEMICOLON};
+    follow["statement_part"] = {END, DOUBLE_BRACKET, OD, FI};
+    follow["statement"] = {SEMICOLON};
+    follow["empty_statement"] = {SEMICOLON};
+    follow["read_statement"] = {SEMICOLON};
+    follow["variable_access_list"] = {ASSIGN, SEMICOLON};
+    follow["variable_access_list_end"] = {ASSIGN, SEMICOLON};
+    follow["write_statement"] = {SEMICOLON};
+    follow["expression_list"] = {SEMICOLON};
+    follow["expression_list_end"] = {SEMICOLON};
+    follow["assignment_statement"] = {SEMICOLON};
+    follow["procedure_statement"] = {SEMICOLON};
+    follow["if_statement"] = {SEMICOLON};
+    follow["do_statement"] = {SEMICOLON};
+    follow["guarded_command_list"] = {OD, FI};
+    follow["guarded_command_list_end"] = {OD, FI};
+    follow["guarded_command"] = {DOUBLE_BRACKET, OD, FI};
+    follow["expression"] = {RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["expression_end"] = {RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["primary_operator"] = {SUBTRACT, LEFT_PARENTHESIS, NOT, NUMERAL, FALSE_KEYWORD, 
+        TRUE_KEYWORD, TRUE_KEYWORD, IDENTIFIER};
+    follow["primary_expression"] = 
+        {AND, OR, RIGHT_ARROW, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["primary_expression_end"] = 
+        {AND, OR, RIGHT_ARROW, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["relational_operator"] = 
+        {SUBTRACT, LEFT_PARENTHESIS, NOT, NUMERAL, FALSE_KEYWORD, TRUE_KEYWORD, IDENTIFIER};
+    follow["simple_expression"] = {LESS_THAN, EQUALS, GREATER_THAN, AND, OR, RIGHT_BRACKET, 
+        RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["simple_expression_end"] = {LESS_THAN, EQUALS, GREATER_THAN, AND, OR, RIGHT_BRACKET, 
+        RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["adding_operator"] = 
+        {LEFT_PARENTHESIS, NOT, NUMERAL, FALSE_KEYWORD, TRUE_KEYWORD, IDENTIFIER};
+    follow["term"] = {ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, AND, OR, RIGHT_BRACKET, 
+        RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["term_end"] = {ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, AND, OR, RIGHT_BRACKET, 
+        RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["multiplying_operator"] = 
+        {LEFT_BRACKET, NOT, NUMERAL, FALSE_KEYWORD, TRUE_KEYWORD, IDENTIFIER};
+    follow["factor"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
+        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
+    follow["variable_access"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
+        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON, ASSIGN};
+    follow["variable_access_end"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
+        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON, ASSIGN};
+    follow["indexed_selector"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
+        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON, ASSIGN};
+    follow["constant"] = {MULTIPLY, DIVIDE, MODULO, ADD, SUBTRACT, LESS_THAN, EQUALS, GREATER_THAN, 
+        AND, OR, RIGHT_BRACKET, RIGHT_PARENTHESIS, RIGHT_ARROW, COMMA, SEMICOLON};
 }

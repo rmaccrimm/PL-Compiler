@@ -18,7 +18,7 @@ public:
     Compiler(std::ifstream &input_file);
 
     // start compilation, the main function for Compiler class
-    void run();
+    bool run();
 
     /* Perform tokenization on the input file. Return false if errors are detected, true otherwise. 
         When an error is detected, the rest of the line is ignored. After 10 errors, scanning is 
