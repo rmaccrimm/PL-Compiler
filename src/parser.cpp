@@ -25,13 +25,13 @@ void Parser::print(std::string msg)
     }
 }
 
-bool Parser::verify_syntax(std::vector<Token> *input_tokens)
+int Parser::verify_syntax(std::vector<Token> *input_tokens)
 {
     // TODO - worry about next_token hitting the end of the input before program completes
     next_token = input_tokens->begin();
     skip_whitespace();
     program();
-    return num_errors == 0;
+    return num_errors;
 }
 
 void Parser::skip_whitespace()

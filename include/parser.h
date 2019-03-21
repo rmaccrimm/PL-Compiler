@@ -16,10 +16,10 @@ public:
     /*  Parse input and verify it can be derived from the PL language grammar. The call stack is 
         printed as it runs, showing the structure of the parse tree. 
         
-        When an error is encountered, the program crashes and prints an error message indicating the
-        line and token where the error occurred.
+        When an error is encountered -- TBD
+        Returns the number of errors found, 0 on success.
     */
-    bool verify_syntax(std::vector<Token> *input_tokens);
+    int verify_syntax(std::vector<Token> *input_tokens);
 
 private:
     // Skip newline and comment tokens

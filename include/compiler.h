@@ -20,15 +20,15 @@ public:
     // start compilation, the main function for Compiler class
     bool run();
 
+private:
     /* Perform tokenization on the input file. Return false if errors are detected, true otherwise. 
         When an error is detected, the rest of the line is ignored. After 10 errors, scanning is 
         aborted. 
 
         The result is stored in the given vector.
     */
-    bool scan(std::vector<Token> &scanner_output);
+    int scan(std::vector<Token> &scanner_output);
 
-private:
     SymbolTable sym_table;
     Scanner scanner;
     Parser parser;
