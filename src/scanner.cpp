@@ -83,7 +83,7 @@ bool Scanner::eof()
 void Scanner::skip_whitespace()
 {
     // Newlines are are not considered whitespace because we want a newline token for debugging
-    while (*next_char == ' ' || *next_char == '\t') {
+    while ((*next_char == ' ' || *next_char == '\t') && !eof()) {
         next_char++;
     }
 }
