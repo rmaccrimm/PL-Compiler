@@ -27,6 +27,7 @@ Parser::Parser(): line{1}, depth{0}, num_errors{0}
     init_symbol_sets();
 }
 
+
 void Parser::print(std::string msg) 
 {
     if (PRINT) {
@@ -39,6 +40,7 @@ void Parser::print(std::string msg)
     }
 }
 
+
 int Parser::verify_syntax(std::vector<Token> *input_tokens)
 {
     num_errors = 0;
@@ -47,6 +49,7 @@ int Parser::verify_syntax(std::vector<Token> *input_tokens)
     program();
     return num_errors;
 }
+
 
 bool Parser::read_next()
 {
@@ -60,6 +63,7 @@ bool Parser::read_next()
     return true;
 }
 
+
 void Parser::skip_whitespace()
 {
     while (next_token->symbol == NEWLINE || next_token->symbol == COMMENT) {
@@ -69,6 +73,7 @@ void Parser::skip_whitespace()
         next_token++;
     }
 }
+
 
 bool Parser::match(Symbol s)
 {
@@ -82,16 +87,19 @@ bool Parser::match(Symbol s)
     return read_next();
 }
 
+
 bool Parser::check_follow(std::string non_terminal)
 {
     return sfind(follow[non_terminal], next_token->symbol);
 }
+
 
 void Parser::error_preamble()
 {
     num_errors++;
     std::cerr << "Error " << num_errors << " on line " << line << ": ";
 }
+
 
 bool Parser::syntax_error(std::string non_terminal)
 {
@@ -100,11 +108,13 @@ bool Parser::syntax_error(std::string non_terminal)
     return synchronize(non_terminal);
 }
 
+
 void Parser::scope_error(std::string id)
 {
     error_preamble();
     std::cerr << "Identifier " << id << " already defined" << std::endl;
 }
+
 
 bool Parser::synchronize(std::string non_terminal)
 {
@@ -118,6 +128,7 @@ bool Parser::synchronize(std::string non_terminal)
               << std::endl; 
     return true;
 }
+
 
 bool Parser::program()
 {
@@ -140,6 +151,7 @@ bool Parser::program()
     return true;
 }
 
+
 bool Parser::block()
 {
     std::string nonterm = "block";
@@ -152,6 +164,7 @@ bool Parser::block()
     MATCH_AND_SYNC(END, nonterm)
     return true;
 }
+
 
 bool Parser::definition_part()
 {
@@ -173,6 +186,7 @@ bool Parser::definition_part()
     }
     return true;
 }
+
 
 bool Parser::definition()
 {
@@ -196,6 +210,7 @@ bool Parser::definition()
     return true;
 }
 
+
 bool Parser::check_scope(std::string id) 
 {
     Block& current_block = block_table.top();
@@ -205,6 +220,7 @@ bool Parser::check_scope(std::string id)
     }
     return true;
 }
+
 
 bool Parser::constant_definition()
 {
@@ -233,6 +249,7 @@ bool Parser::constant_definition()
     return true;
 }
 
+
 bool Parser::variable_definition()
 {
 	print("variable_definition");
@@ -247,6 +264,7 @@ bool Parser::variable_definition()
     depth--;
     return true;
 }
+
 
 bool Parser::variable_definition_type(PLType type)
 {
@@ -288,6 +306,7 @@ bool Parser::variable_definition_type(PLType type)
     return true;
 }
 
+
 bool Parser::type_symbol(PLType &type)
 {
     std::string nonterm = "type_symbol";
@@ -309,6 +328,7 @@ bool Parser::type_symbol(PLType &type)
     return true;
 }
 
+
 bool Parser::variable_list(std::vector<std::string> &var_list)
 {
     std::string nonterm = "variable_list";
@@ -322,6 +342,7 @@ bool Parser::variable_list(std::vector<std::string> &var_list)
 	depth--;
     return true;
 }
+
 
 bool Parser::variable_list_end(std::vector<std::string> &var_list)
 {
@@ -344,6 +365,7 @@ bool Parser::variable_list_end(std::vector<std::string> &var_list)
     depth--;
     return true;
 }
+
 
 bool Parser::procedure_definition()
 {
@@ -372,6 +394,7 @@ bool Parser::procedure_definition()
     return true;
 } 
 
+
 bool Parser::statement_part()
 {
     std::string nonterm = "statement_part";
@@ -392,6 +415,7 @@ bool Parser::statement_part()
     }
     return true;
 }
+
 
 bool Parser::statement()
 {
@@ -427,6 +451,7 @@ bool Parser::statement()
     return true;
 }
 
+
 bool Parser::empty_statement()
 {
     std::string nonterm = "empty_statement";
@@ -436,6 +461,7 @@ bool Parser::empty_statement()
 	depth--;
     return true;
 }
+
 
 bool Parser::read_statement()
 {
@@ -448,6 +474,7 @@ bool Parser::read_statement()
     return true;
 }
 
+
 bool Parser::variable_access_list()
 {
 	print("variable_access_list");
@@ -457,6 +484,7 @@ bool Parser::variable_access_list()
 	depth--;
     return true;
 }
+
 
 bool Parser::variable_access_list_end()
 {
@@ -478,6 +506,7 @@ bool Parser::variable_access_list_end()
     return true;
 }
 
+
 bool Parser::write_statement()
 {
     std::string nonterm = "write_statement";
@@ -489,6 +518,7 @@ bool Parser::write_statement()
     return true;
 }
 
+
 bool Parser::expression_list()
 {
 	print("expression_list");
@@ -498,6 +528,7 @@ bool Parser::expression_list()
 	depth--;
     return true;
 }
+
 
 bool Parser::expression_list_end()
 {
@@ -517,6 +548,7 @@ bool Parser::expression_list_end()
     depth--;
     return true;
 }
+
 
 bool Parser::assignment_statement()
 {
@@ -541,6 +573,7 @@ bool Parser::procedure_statement()
     return true;
 }
 
+
 bool Parser::if_statement()
 {
 	std::string nonterm = "if_statement";
@@ -552,6 +585,7 @@ bool Parser::if_statement()
 	depth--;
     return true;
 }
+
 
 bool Parser::do_statement()
 {
@@ -565,6 +599,7 @@ bool Parser::do_statement()
     return true;
 }
 
+
 bool Parser::guarded_command_list()
 {
 	print("guarded_command_list");
@@ -574,6 +609,7 @@ bool Parser::guarded_command_list()
 	depth--;
     return true;
 }
+
 
 bool Parser::guarded_command_list_end()
 {
@@ -595,6 +631,7 @@ bool Parser::guarded_command_list_end()
     return true;
 }
 
+
 bool Parser::guarded_command()
 {
     std::string nonterm = "guarded_command";
@@ -607,6 +644,7 @@ bool Parser::guarded_command()
     return true;
 }
 
+
 bool Parser::expression()
 {
 	print("expression");
@@ -616,6 +654,7 @@ bool Parser::expression()
 	depth--;
     return true;
 }
+
 
 bool Parser::expression_end()
 {
@@ -636,6 +675,7 @@ bool Parser::expression_end()
     return true;
 }
 
+
 bool Parser::primary_operator()
 {
     std::string nonterm = "primary_operator";
@@ -652,6 +692,7 @@ bool Parser::primary_operator()
     return true;
 }
 
+
 bool Parser::primary_expression()
 {
 	print("primary_expression");
@@ -661,6 +702,7 @@ bool Parser::primary_expression()
 	depth--;
     return true;
 }
+
 
 bool Parser::primary_expression_end()
 {
@@ -680,6 +722,7 @@ bool Parser::primary_expression_end()
     return true;
 }
 
+
 bool Parser::relational_operator()
 {
     std::string nonterm = "relational_operator";
@@ -695,6 +738,7 @@ bool Parser::relational_operator()
 	depth--;
     return true;
 }
+
 
 bool Parser::simple_expression()
 {
@@ -719,6 +763,7 @@ bool Parser::simple_expression()
     return true;
 }
 
+
 bool Parser::simple_expression_end()
 {
     std::string nonterm = "simple_expression_end";
@@ -739,6 +784,7 @@ bool Parser::simple_expression_end()
     return true;    
 }
 
+
 bool Parser::adding_operator()
 {
     std::string nonterm = "adding_operator";
@@ -755,6 +801,7 @@ bool Parser::adding_operator()
     return true;
 }
 
+
 bool Parser::term()
 {
     std::string nonterm = "term";
@@ -765,6 +812,7 @@ bool Parser::term()
 	depth--;
     return true;
 }
+
 
 bool Parser::term_end()
 {
@@ -786,6 +834,7 @@ bool Parser::term_end()
     return true;
 }
 
+
 bool Parser::multiplying_operator()
 {
     std::string nonterm = "multiplying_operator";
@@ -801,6 +850,7 @@ bool Parser::multiplying_operator()
 	depth--;
     return true;
 }
+
 
 bool Parser::factor()
 {
@@ -831,6 +881,7 @@ bool Parser::factor()
     return true;
 }
 
+
 bool Parser::variable_access()
 {
     std::string nonterm = "variable_access";
@@ -841,6 +892,7 @@ bool Parser::variable_access()
 	depth--;
     return true;
 }
+
 
 bool Parser::variable_access_end()
 {
@@ -861,6 +913,7 @@ bool Parser::variable_access_end()
     return true;
 }
 
+
 bool Parser::indexed_selector()
 {
     std::string nonterm = "indexed_selector";
@@ -872,6 +925,7 @@ bool Parser::indexed_selector()
 	depth--;
     return true;
 }
+
 
 bool Parser::constant()
 {
@@ -886,6 +940,7 @@ bool Parser::constant()
     }
     return true;
 }
+
 
 void Parser::init_symbol_sets()
 {
