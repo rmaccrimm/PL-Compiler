@@ -13,6 +13,9 @@
 */
 #define TRY(func) if(!func()) return false
 
+// Same as above, but passes an arugment
+#define TRY_WITH_ARG(func, arg) if (!func(arg)) return false
+
 /*  When matching, continue only if successful, otherwise attempt to synchronize and skip the
     rest of the current noterminal function
 */
@@ -237,9 +240,7 @@ bool Parser::constant_definition()
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
     MATCH_AND_SYNC(EQUALS, nonterm);
     PLType type = PLType::UNDEFINED;
-    if (!constant(type)) {
-        return false;
-    }
+    TRY_WITH_ARG(constant, type);
     depth--;
     if (type != PLType::INT_CONST && type != PLType::BOOL_CONST) {
         error_preamble();
@@ -261,12 +262,8 @@ bool Parser::variable_definition()
 	print("variable_definition");
     depth++;
     PLType type;
-    if (!type_symbol(type)) {
-        return false;
-    }
-    if (!variable_definition_type(type)) {
-        return false;
-    }
+    TRY_WITH_ARG(type_symbol, type);
+    TRY_WITH_ARG(variable_definition_type, type);
     depth--;
     return true;
 }
@@ -285,20 +282,14 @@ bool Parser::variable_definition_type(PLType type)
 
     auto s = next_token->symbol;
     if (s == IDENTIFIER) {
-        if (!variable_list(vars)) {
-            return false;
-        }
+        TRY_WITH_ARG(variable_list, vars);
     }
     else if (s == ARRAY) { 
         MATCH_AND_SYNC(ARRAY, nonterm);
-        if (!variable_list(vars)) {
-            return false;
-        }
+        TRY_WITH_ARG(variable_list, vars);
         MATCH_AND_SYNC(LEFT_BRACKET, nonterm);
         PLType type = PLType::UNDEFINED;
-        if (!constant(type)) {
-            return false;
-        }
+        TRY_WITH_ARG(constant, type);
         if (type != PLType::INT_CONST) {
             error_preamble();
             std::cerr << "Array bounds must be of type const integer" << std::endl;
@@ -350,9 +341,7 @@ bool Parser::variable_list(std::vector<std::string> &var_list)
 	depth++;
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
     var_list.push_back((next_token-1)->lexeme);
-    if (!variable_list_end(var_list)) {
-        return false;
-    }
+    TRY_WITH_ARG(variable_list_end, var_list);
 	depth--;
     return true;
 }
@@ -368,9 +357,7 @@ bool Parser::variable_list_end(std::vector<std::string> &var_list)
         MATCH_AND_SYNC(s, nonterm);
         MATCH_AND_SYNC(IDENTIFIER, nonterm);
         var_list.push_back(matched_id.lexeme);
-        if (!variable_list_end(var_list)) {
-            return false;
-        }
+        TRY_WITH_ARG(variable_list_end, var_list);
     }
     // epsilon production
     else if (!check_follow(nonterm)) {
@@ -886,9 +873,7 @@ bool Parser::factor()
     }
     else if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD || s == IDENTIFIER) {
         auto type = PLType::UNDEFINED;
-        if (!constant(type)) {
-            return false;
-        }
+        TRY_WITH_ARG(constant, type);
     }
     else if (s == NOT) {
         match(s);
