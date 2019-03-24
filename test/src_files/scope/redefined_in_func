@@ -1,0 +1,13 @@
+$PL Program: Linear Search
+begin
+    integer array A, C, D, E[12];
+    const n = 10; 
+    integer x, i; Boolean found;
+    proc Search
+    begin
+        Boolean n; const A = 3; integer array found[10];
+        Boolean z;
+        const c = false;
+    end;
+    integer z; integer array c[10];
+end.

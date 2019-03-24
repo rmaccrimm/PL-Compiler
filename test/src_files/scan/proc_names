@@ -1,0 +1,1 @@
+begin proc A begin end; proc B begin end; proc C begin end; end.
