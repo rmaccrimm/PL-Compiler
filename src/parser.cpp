@@ -11,12 +11,12 @@
     All nonterminal functions that call another nonterminal continue only if true is returned, 
     returning false otherwise.
 */
-#define TRY(func) if(!func()) { return false; }
+#define TRY(func) if(!func()) return false
 
 /*  When matching, continue only if successful, otherwise attempt to synchronize and skip the
     rest of the current noterminal function
 */
-#define MATCH_AND_SYNC(symbol, nonterminal) if (!match(symbol)) { return synchronize(nonterminal); }
+#define MATCH_AND_SYNC(symbol, nonterminal) if (!match(symbol)) return synchronize(nonterminal)
 
 // Slightly simpler syntax for looking up an element of a set 
 bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
@@ -137,7 +137,7 @@ bool Parser::program()
 
     depth++;
     block_table.push(Block());
-    TRY(block)
+    TRY(block);
     depth--;
     block_table.pop();
 
@@ -156,12 +156,12 @@ bool Parser::block()
 {
     std::string nonterm = "block";
 	print(nonterm);
-    MATCH_AND_SYNC(BEGIN, nonterm)
+    MATCH_AND_SYNC(BEGIN, nonterm);
     depth++;
-    TRY(definition_part)
-    TRY(statement_part)
+    TRY(definition_part);
+    TRY(statement_part);
     depth--;
-    MATCH_AND_SYNC(END, nonterm)
+    MATCH_AND_SYNC(END, nonterm);
     return true;
 }
 
@@ -174,10 +174,10 @@ bool Parser::definition_part()
     std::set<Symbol> first{CONST, INT, BOOL, PROC};
     auto s = next_token->symbol;
     if (sfind(first, s)) {
-        TRY(definition)
-        MATCH_AND_SYNC(SEMICOLON, nonterm)        
+        TRY(definition);
+        MATCH_AND_SYNC(SEMICOLON, nonterm);        
         depth--;
-        TRY(definition_part)
+        TRY(definition_part);
     }
     // epsilon production
     else if (!check_follow(nonterm)) {
@@ -195,13 +195,13 @@ bool Parser::definition()
     depth++;
     auto s = next_token->symbol;
     if (s == CONST) {
-        TRY(constant_definition)
+        TRY(constant_definition);
     }
     else if (s == INT || s == BOOL) {
-        TRY(variable_definition)
+        TRY(variable_definition);
     }
     else if (s == PROC) {
-        TRY(procedure_definition)
+        TRY(procedure_definition);
     }
     else {
         return syntax_error(nonterm);
@@ -228,10 +228,10 @@ bool Parser::constant_definition()
 	print(nonterm);
 
     depth++;
-    MATCH_AND_SYNC(CONST, nonterm)    
+    MATCH_AND_SYNC(CONST, nonterm);    
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
     MATCH_AND_SYNC(EQUALS, nonterm);
-    TRY(constant)
+    TRY(constant);
     depth--;
 
     /*  We have now succesfully matched the whole sequence, const ID = CONST, so know what 
@@ -284,13 +284,13 @@ bool Parser::variable_definition_type(PLType type)
         }
     }
     else if (s == ARRAY) { 
-        MATCH_AND_SYNC(ARRAY, nonterm)
+        MATCH_AND_SYNC(ARRAY, nonterm);
         if (!variable_list(vars)) {
             return false;
         }
-        MATCH_AND_SYNC(LEFT_BRACKET, nonterm)
-        TRY(constant)
-        MATCH_AND_SYNC(RIGHT_BRACKET, nonterm)
+        MATCH_AND_SYNC(LEFT_BRACKET, nonterm);
+        TRY(constant);
+        MATCH_AND_SYNC(RIGHT_BRACKET, nonterm);
         // After matching sequence look back 2 tokens to get size of the array(s)
         size = (next_token - 2)->value;
     }
@@ -372,7 +372,7 @@ bool Parser::procedure_definition()
     std::string nonterm = "procedure_definition";
 	print(nonterm);
 	depth++;
-    MATCH_AND_SYNC(PROC, nonterm)    
+    MATCH_AND_SYNC(PROC, nonterm);    
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
 
     auto id = (next_token - 1)->lexeme;
@@ -403,10 +403,10 @@ bool Parser::statement_part()
     std::set<Symbol> first{SKIP, READ, WRITE, IDENTIFIER, CALL, IF, DO};
     auto s = next_token->symbol;
     if (sfind(first, s)) {
-        TRY(statement)
-        MATCH_AND_SYNC(SEMICOLON, nonterm)        
+        TRY(statement);
+        MATCH_AND_SYNC(SEMICOLON, nonterm);        
         depth--;
-        TRY(statement_part)
+        TRY(statement_part);
     }
     // epsilon production
     else if (!check_follow(nonterm)) {
@@ -424,25 +424,25 @@ bool Parser::statement()
 	depth++;
     auto s = next_token->symbol;
     if (s == SKIP) {
-        TRY(empty_statement)
+        TRY(empty_statement);
     }
     else if (s == READ) {
-        TRY(read_statement)
+        TRY(read_statement);
     }
     else if (s == WRITE) {
-        TRY(write_statement)
+        TRY(write_statement);
     }
     else if (s == IDENTIFIER) {
-        TRY(assignment_statement)
+        TRY(assignment_statement);
     }
     else if (s == CALL) {
-        TRY(procedure_statement)
+        TRY(procedure_statement);
     }
     else if (s == IF) {
-        TRY(if_statement)
+        TRY(if_statement);
     }
     else if (s == DO) {
-        TRY(do_statement)
+        TRY(do_statement);
     }
     else {
         syntax_error(nonterm);
@@ -457,7 +457,7 @@ bool Parser::empty_statement()
     std::string nonterm = "empty_statement";
 	print(nonterm);
 	depth++;
-    MATCH_AND_SYNC(SKIP, nonterm)
+    MATCH_AND_SYNC(SKIP, nonterm);
 	depth--;
     return true;
 }
@@ -468,8 +468,8 @@ bool Parser::read_statement()
     std::string nonterm = "read_statement";
 	print(nonterm);
 	depth++;
-    MATCH_AND_SYNC(READ, nonterm)
-    TRY(variable_access_list)
+    MATCH_AND_SYNC(READ, nonterm);
+    TRY(variable_access_list);
 	depth--;
     return true;
 }
@@ -479,8 +479,8 @@ bool Parser::variable_access_list()
 {
 	print("variable_access_list");
 	depth++;
-    TRY(variable_access)
-    TRY(variable_access_list_end)
+    TRY(variable_access);
+    TRY(variable_access_list_end);
 	depth--;
     return true;
 }
@@ -495,8 +495,8 @@ bool Parser::variable_access_list_end()
     auto s = next_token->symbol;
     if (s == COMMA) {
         MATCH_AND_SYNC(COMMA, nonterm);
-        TRY(variable_access)
-        TRY(variable_access_list_end)
+        TRY(variable_access);
+        TRY(variable_access_list_end);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -512,8 +512,8 @@ bool Parser::write_statement()
     std::string nonterm = "write_statement";
 	print(nonterm);
 	depth++;
-    MATCH_AND_SYNC(WRITE, nonterm)
-    TRY(expression_list)
+    MATCH_AND_SYNC(WRITE, nonterm);
+    TRY(expression_list);
 	depth--;
     return true;
 }
@@ -523,8 +523,8 @@ bool Parser::expression_list()
 {
 	print("expression_list");
 	depth++;
-    TRY(expression)
-    TRY(expression_list_end)
+    TRY(expression);
+    TRY(expression_list_end);
 	depth--;
     return true;
 }
@@ -538,8 +538,8 @@ bool Parser::expression_list_end()
     auto s = next_token->symbol;
     if (s == COMMA) {
         MATCH_AND_SYNC(s, nonterm);
-        TRY(expression)
-        TRY(expression_list_end)
+        TRY(expression);
+        TRY(expression_list_end);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -555,9 +555,9 @@ bool Parser::assignment_statement()
     std::string nonterm = "assignment_statement";
     print(nonterm);
 	depth++;
-    TRY(variable_access_list)
+    TRY(variable_access_list);
     MATCH_AND_SYNC(ASSIGN, nonterm);
-    TRY(expression_list)
+    TRY(expression_list);
 	depth--;
     return true;
 }
@@ -580,7 +580,7 @@ bool Parser::if_statement()
     print(nonterm);
 	depth++;
     MATCH_AND_SYNC(IF, nonterm);
-    TRY(guarded_command_list)
+    TRY(guarded_command_list);
     MATCH_AND_SYNC(FI, nonterm);
 	depth--;
     return true;
@@ -593,7 +593,7 @@ bool Parser::do_statement()
     print(nonterm);
 	depth++;
     MATCH_AND_SYNC(DO, nonterm);
-    TRY(guarded_command_list)
+    TRY(guarded_command_list);
     MATCH_AND_SYNC(OD, nonterm);
 	depth--;
     return true;
@@ -604,8 +604,8 @@ bool Parser::guarded_command_list()
 {
 	print("guarded_command_list");
 	depth++;
-    TRY(guarded_command)
-    TRY(guarded_command_list_end)
+    TRY(guarded_command);
+    TRY(guarded_command_list_end);
 	depth--;
     return true;
 }
@@ -619,9 +619,9 @@ bool Parser::guarded_command_list_end()
     auto s = next_token->symbol;
     if (s == DOUBLE_BRACKET) {
         MATCH_AND_SYNC(s, nonterm);
-        TRY(guarded_command)
+        TRY(guarded_command);
         depth--;
-        TRY(guarded_command_list_end)
+        TRY(guarded_command_list_end);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -637,9 +637,9 @@ bool Parser::guarded_command()
     std::string nonterm = "guarded_command";
     print(nonterm);
 	depth++;
-    TRY(expression)
+    TRY(expression);
     MATCH_AND_SYNC(RIGHT_ARROW, nonterm);
-    TRY(statement_part)
+    TRY(statement_part);
 	depth--;
     return true;
 }
@@ -649,8 +649,8 @@ bool Parser::expression()
 {
 	print("expression");
 	depth++;
-    TRY(primary_expression)
-    TRY(expression_end)
+    TRY(primary_expression);
+    TRY(expression_end);
 	depth--;
     return true;
 }
@@ -663,9 +663,9 @@ bool Parser::expression_end()
 	depth++;
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
-        TRY(primary_operator)
-        TRY(primary_expression)
-        TRY(expression_end)
+        TRY(primary_operator);
+        TRY(primary_expression);
+        TRY(expression_end);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -697,8 +697,8 @@ bool Parser::primary_expression()
 {
 	print("primary_expression");
 	depth++;
-    TRY(simple_expression)
-    TRY(primary_expression_end)
+    TRY(simple_expression);
+    TRY(primary_expression_end);
 	depth--;
     return true;
 }
@@ -711,8 +711,8 @@ bool Parser::primary_expression_end()
 	depth++;
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == GREATER_THAN || s == EQUALS) {
-        TRY(relational_operator)
-        TRY(simple_expression)
+        TRY(relational_operator);
+        TRY(simple_expression);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -749,12 +749,12 @@ bool Parser::simple_expression()
     auto s = next_token->symbol;
     if (s == SUBTRACT) {
         match(s);
-        TRY(term)
-        TRY(simple_expression_end)
+        TRY(term);
+        TRY(simple_expression_end);
     }
     else if (sfind(first, s)) {
-        TRY(term)
-        TRY(simple_expression_end)
+        TRY(term);
+        TRY(simple_expression_end);
     }
     else {
         return syntax_error(nonterm);
@@ -771,10 +771,10 @@ bool Parser::simple_expression_end()
 	depth++;
     auto s = next_token->symbol;
     if (s == ADD || s == SUBTRACT) {
-        TRY(adding_operator)
-        TRY(term)
+        TRY(adding_operator);
+        TRY(term);
         depth--;
-        TRY(simple_expression_end)
+        TRY(simple_expression_end);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -807,8 +807,8 @@ bool Parser::term()
     std::string nonterm = "term";
 	print(nonterm);
 	depth++;
-    TRY(factor)
-    TRY(term_end)
+    TRY(factor);
+    TRY(term_end);
 	depth--;
     return true;
 }
@@ -821,10 +821,10 @@ bool Parser::term_end()
 	depth++;
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s == MODULO) {
-        TRY(multiplying_operator)
-        TRY(factor)
+        TRY(multiplying_operator);
+        TRY(factor);
         depth--;
-        TRY(term_end)
+        TRY(term_end);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -861,18 +861,18 @@ bool Parser::factor()
     auto s = next_token->symbol;
     if (s == LEFT_PARENTHESIS) {
         match(s);
-        TRY(expression)
+        TRY(expression);
         MATCH_AND_SYNC(RIGHT_PARENTHESIS, nonterm);
     }
     else if (s == IDENTIFIER) {
-        TRY(variable_access)
+        TRY(variable_access);
     }
     else if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD || s == IDENTIFIER) {
-        TRY(constant)
+        TRY(constant);
     }
     else if (s == NOT) {
         match(s);
-        TRY(factor)
+        TRY(factor);
     }
     else {
         return syntax_error(nonterm);
@@ -887,8 +887,8 @@ bool Parser::variable_access()
     std::string nonterm = "variable_access";
     print(nonterm);
 	depth++;
-    MATCH_AND_SYNC(IDENTIFIER, nonterm)
-    TRY(variable_access_end)
+    MATCH_AND_SYNC(IDENTIFIER, nonterm);
+    TRY(variable_access_end);
 	depth--;
     return true;
 }
@@ -901,9 +901,9 @@ bool Parser::variable_access_end()
 	depth++;    
     auto s = next_token->symbol;
     if (s == LEFT_BRACKET) {
-        MATCH_AND_SYNC(s, nonterm)
-        TRY(expression)
-        MATCH_AND_SYNC(RIGHT_BRACKET, nonterm)
+        MATCH_AND_SYNC(s, nonterm);
+        TRY(expression);
+        MATCH_AND_SYNC(RIGHT_BRACKET, nonterm);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -920,7 +920,7 @@ bool Parser::indexed_selector()
     print(nonterm);
 	depth++;
     MATCH_AND_SYNC(LEFT_BRACKET, nonterm);
-    TRY(expression)
+    TRY(expression);
     match(RIGHT_BRACKET);
 	depth--;
     return true;
