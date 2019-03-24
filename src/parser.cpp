@@ -44,6 +44,7 @@ void Parser::print(std::string msg)
 int Parser::verify_syntax(std::vector<Token> *input_tokens)
 {
     num_errors = 0;
+    line = 1;
     next_token = input_tokens->begin();
     skip_whitespace();
     program();
@@ -84,6 +85,9 @@ bool Parser::match(Symbol s)
                   << std::endl;
         return false;
     }
+    if (s == IDENTIFIER) {
+        matched_id = *next_token;
+    }
     return read_next();
 }
 
@@ -109,10 +113,15 @@ bool Parser::syntax_error(std::string non_terminal)
 }
 
 
-void Parser::scope_error(std::string id)
+void Parser::scope_error(std::string id, bool defined)
 {
     error_preamble();
-    std::cerr << "Identifier " << id << " already defined" << std::endl;
+    if (defined) {
+        std::cerr << "Identifier " << id << " already defined" << std::endl;
+    }
+    else {
+        std::cerr << "Identifier " << id << " used before defined" << std::endl;
+    }
 }
 
 
@@ -211,14 +220,10 @@ bool Parser::definition()
 }
 
 
-bool Parser::check_scope(std::string id) 
+bool Parser::in_scope(std::string id) 
 {
     Block& current_block = block_table.top();
-    if (current_block.find(id) != current_block.end()) {
-        scope_error(id);
-        return false;
-    }
-    return true;
+    return current_block.find(id) != current_block.end();
 }
 
 
@@ -231,20 +236,21 @@ bool Parser::constant_definition()
     MATCH_AND_SYNC(CONST, nonterm);    
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
     MATCH_AND_SYNC(EQUALS, nonterm);
-    TRY(constant);
+    PLType type = PLType::UNDEFINED;
+    if (!constant(type)) {
+        return false;
+    }
     depth--;
-
-    /*  We have now succesfully matched the whole sequence, const ID = CONST, so know what 
-        preceding tokens are
-    */
-    auto id_tok = *(next_token - 3);
-    auto id = id_tok.lexeme;
-
-    if (check_scope(id)) {
-        // Determine type and insert
-        auto s = (next_token - 1)->symbol;
-        auto type = (s == NUMERAL) ? PLType::INT_CONST : PLType::BOOL_CONST;
+    if (type != PLType::INT_CONST && type != PLType::BOOL_CONST) {
+        error_preamble();
+        std::cerr << "Non const value cannot be assigned a constant" << std::endl;
+    }
+    auto id = matched_id.lexeme;
+    if (!in_scope(id)) {
         block_table.top()[id] = {type, 1};
+    }
+    else {
+        scope_error(id);
     }
     return true;
 }
@@ -289,18 +295,26 @@ bool Parser::variable_definition_type(PLType type)
             return false;
         }
         MATCH_AND_SYNC(LEFT_BRACKET, nonterm);
-        TRY(constant);
+        PLType type = PLType::UNDEFINED;
+        if (!constant(type)) {
+            return false;
+        }
+        if (type != PLType::INT_CONST) {
+            error_preamble();
+            std::cerr << "Array bounds must be of type const integer" << std::endl;
+        }
         MATCH_AND_SYNC(RIGHT_BRACKET, nonterm);
-        // After matching sequence look back 2 tokens to get size of the array(s)
-        size = (next_token - 2)->value;
     }
     else {
         return syntax_error(nonterm);
     }
 	depth--;
     for (auto &id: vars) {
-        if (check_scope(id)) {
+        if (!in_scope(id)) {
             block_table.top()[id] = {type, size};
+        }
+        else {
+            scope_error(id);
         }
     }
     return true;
@@ -353,7 +367,7 @@ bool Parser::variable_list_end(std::vector<std::string> &var_list)
     if (s == COMMA) {
         MATCH_AND_SYNC(s, nonterm);
         MATCH_AND_SYNC(IDENTIFIER, nonterm);
-        var_list.push_back((next_token-1)->lexeme);
+        var_list.push_back(matched_id.lexeme);
         if (!variable_list_end(var_list)) {
             return false;
         }
@@ -375,9 +389,12 @@ bool Parser::procedure_definition()
     MATCH_AND_SYNC(PROC, nonterm);    
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
 
-    auto id = (next_token - 1)->lexeme;
-    if (check_scope(id)) {
+    auto id = matched_id.lexeme;
+    if (!in_scope(id)) {
         block_table.top()[id] = {PLType::PROCEDURE, 1};
+    }
+    else {
+        scope_error(id);
     }
     /*  Push a new block onto the stack that is initially identical to the previous block. This 
         allows the procedure to access variables in the outer scope, but does not allow later 
@@ -868,7 +885,10 @@ bool Parser::factor()
         TRY(variable_access);
     }
     else if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD || s == IDENTIFIER) {
-        TRY(constant);
+        auto type = PLType::UNDEFINED;
+        if (!constant(type)) {
+            return false;
+        }
     }
     else if (s == NOT) {
         match(s);
@@ -927,12 +947,27 @@ bool Parser::indexed_selector()
 }
 
 
-bool Parser::constant()
+bool Parser::constant(PLType &type)
 {
     std::string nonterm = "constant";
 	print(nonterm);
     auto s = next_token->symbol;
-    if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD || s == IDENTIFIER) {
+    if (s == NUMERAL) {
+        type = PLType::INT_CONST;
+        match(s);
+    }
+    else if (s == TRUE_KEYWORD || s == FALSE_KEYWORD) {
+        type = PLType::BOOL_CONST;
+        match(s);
+    }
+    else if (s == IDENTIFIER) {
+        auto id = next_token->lexeme;
+        if (!in_scope(id)) {
+            scope_error(id, false);
+        }
+        else {
+            type = std::get<0>(block_table.top()[id]);
+        }
         match(s);
     }
     else {

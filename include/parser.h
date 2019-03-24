@@ -54,6 +54,9 @@ private:
     // The Block Table, for scope and type checking
     std::stack<Block> block_table;
 
+    // Always save the last identifier token matched
+    Token matched_id;
+
     // Used to track height of call stack for printing function calls with indentation
     int depth;
     int num_errors;
@@ -73,14 +76,14 @@ private:
     // When none of the predict symbols are found, print error message and attempt to synchronize
     bool syntax_error(std::string non_terminal);
 
-    void scope_error(std::string identifier);
+    void scope_error(std::string identifier, bool define=true);
 
     void type_error(Token t);
 
     bool check_follow(std::string non_terminal);
 
-    // Check if identifier has already been defined in current scope, return true if not
-    bool check_scope(std::string id);
+    // Check if identifier has already been defined in current scope
+    bool in_scope(std::string id);
 
     // When in an error state, skip input symbols until one is found from which parsing can continue
     bool synchronize(std::string non_terminal); 
@@ -138,7 +141,7 @@ private:
     bool variable_access();
     bool variable_access_end();
     bool indexed_selector();
-    bool constant();
+    bool constant(PLType &type);
 
     // Initialize first and follow sets
     void init_symbol_sets();
