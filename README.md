@@ -1,5 +1,6 @@
 # CPSC 4600 Project Language (PL) Compiler
 Roderick MacCrimmon (single person group, responsible for whole project)
+- grammar modification: no longer allow const id = id
 
 Estimated time spent on project: 10-15 hours for part 1 (scanner) and 10 for part 2 (parser)
 

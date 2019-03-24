@@ -86,12 +86,23 @@ bool Parser::check_follow(std::string non_terminal)
     return sfind(follow[non_terminal], next_token->symbol);
 }
 
-bool Parser::syntax_error(std::string non_terminal)
+void Parser::error_preamble()
 {
     num_errors++;
-    std::cerr << "Error " << num_errors << " on line " << line << ": Unexpected "
-              << SYMBOL_STRINGS.at(next_token->symbol) << " symbol" << std::endl; 
+    std::cerr << "Error " << num_errors << " on line " << line << ": ";
+}
+
+bool Parser::syntax_error(std::string non_terminal)
+{
+    error_preamble();
+    std::cerr << "Unexpected " << SYMBOL_STRINGS.at(next_token->symbol) << " symbol" << std::endl; 
     return synchronize(non_terminal);
+}
+
+void Parser::scope_error(Token t)
+{
+    error_preamble();
+    std::cerr << "Identifier " << t.lexeme << " already exists" << std::endl;
 }
 
 bool Parser::synchronize(std::string non_terminal)
@@ -111,9 +122,13 @@ bool Parser::program()
 {
     std::string nonterm = "program";
     print(nonterm);
+
     depth++;
+    block_table.push(Block());
     TRY(block)
     depth--;
+    block_table.pop();
+
     MATCH_AND_SYNC(PERIOD, nonterm);
     if (next_token->symbol != END_OF_FILE) {
         num_errors++;
@@ -184,12 +199,35 @@ bool Parser::constant_definition()
 {
     std::string nonterm = "constant_definition";
 	print(nonterm);
+
     depth++;
     MATCH_AND_SYNC(CONST, nonterm)    
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
     MATCH_AND_SYNC(EQUALS, nonterm);
     TRY(constant)
     depth--;
+
+    /*  We have now succesfully matched the whole sequence, const ID = CONST, so know what 
+        preceding tokens are
+    */
+    auto id_tok = *(next_token - 3);
+    auto id = id_tok.lexeme;
+
+    std::cout << id << std::endl;
+    // Check scope
+    Block& current_block = block_table.top();
+    if (current_block.find(id) != current_block.end()) {
+        scope_error(id_tok);
+    }
+    // Determine type and insert
+    else {
+        auto const_tok = *(next_token - 1);
+        auto s = const_tok.symbol;
+        auto type = (s == NUMERAL) ? PLType::INT_CONST : PLType::BOOL_CONST;
+        current_block[id] = {type, 1};
+    }
+    std::cout << block_table.size() << std::endl;
+    // std::cout << (int)std::get<0>(block_table.top()[id]) << ' ' << std::get<1>(block_table.top()[id]) << std::endl;
     return true;
 }
 
