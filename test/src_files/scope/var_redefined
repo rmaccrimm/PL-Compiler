@@ -1,4 +1,4 @@
-$PL Program: Linear Search
+$ Define variables that already exist - expect 4 errors
 begin
     integer array A, C, D, E[20];
     const n = 10; 

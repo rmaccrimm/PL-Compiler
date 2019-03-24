@@ -1,7 +1,7 @@
-$PL Program: Linear Search
+$ Define procedure that already exists - expect 4 errors
 begin
     const n = 10; integer array A[n];
-    integer x, i; Boolean found;
+    integer x; Boolean found;
     proc search 
     begin
     end;

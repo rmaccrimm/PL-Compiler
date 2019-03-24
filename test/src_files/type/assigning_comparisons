@@ -1,0 +1,10 @@
+$ assigning the result of arithmetic expressions to vars
+begin
+    integer x, y, z;
+    Boolean a, b, c;
+    const q=10, r=1, s=20;
+    const f = false; const t = true;
+
+    x := q + 20 * 1
+
+end;

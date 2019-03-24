@@ -1,5 +1,7 @@
+$ when a variable is used for array size, it must be a constant integer and must be defined already
+$ expect 5 errors
 begin
-    integer array A, C, D, E[n];
+    integer array A, C, D, E[n]; $ double error, not defined, not type const int (undefined type)
     const f = false;
     integer array QW[f];
     proc B begin end;

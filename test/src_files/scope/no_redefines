@@ -1,4 +1,4 @@
-$PL Program: Linear Search
+$ All variables distinct - expect 0 errors
 begin
     const a = 12; const b = 10; const c = false;
     integer array A, B, C[b]; integer array arr[12];

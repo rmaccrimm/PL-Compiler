@@ -1,4 +1,4 @@
-$PL Program: Linear Search
+$ Defining an array that already exists - expect 2 errors
 begin
     integer array A, C, C, D, E[10];
     const n = 10; integer array A[n];

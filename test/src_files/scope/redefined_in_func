@@ -1,4 +1,4 @@
-$PL Program: Linear Search
+$ Define variables that exist in outer scope - expect 3 errors
 begin
     integer array A, C, D, E[12];
     const n = 10; 
@@ -9,5 +9,6 @@ begin
         Boolean z;
         const c = false;
     end;
+    $ only defined in Search, should not create an error
     integer z; integer array c[10];
 end.

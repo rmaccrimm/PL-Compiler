@@ -1,18 +1,10 @@
-$PL Program: Linear Search
+$ A mix of redefinitions between kinds of variables - expect 6 errors
+$ 30 possible conflicts
 begin
-    const n = 10; integer array A, C, D, E[n];
-    const D = 10; Boolean n;
-    integer x, i; Boolean found;
-    proc A
-    begin 
-    end;
-    proc i
-    begin
-    end;
-    proc func
-    
-    begin
-
-    
-    end;
+    const n = 10; integer array n[10]; Boolean array n[10]; integer n; Boolean n; proc n begin end;
+    integer x; const x = 10; integer array x[10]; Boolean array x[10];  Boolean x; proc x begin end;
+    Boolean b; const b = 10; integer array b[10]; Boolean array b[10]; integer b;  proc b begin end;
+    integer array a[10]; const a= 10;  Boolean array a[10]; integer a; Boolean a; proc a begin end;
+    Boolean array q[10];const q = 10; integer array q[10];  integer q; Boolean q; proc q begin end;
+    proc s begin end;Boolean array s[10];const s = 10; integer array s[10];  integer s; Boolean s; 
 end.

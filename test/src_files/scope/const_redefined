@@ -1,4 +1,4 @@
-$PL Program: Linear Search
+$ Defining a const that already exists - expect 2 errors
 begin
     const a = false;
     const a = 12;

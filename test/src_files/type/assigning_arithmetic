@@ -1,0 +1,20 @@
+$ assigning the result of arithmetic expressions to vars - expect 23 errors
+begin
+    integer x, y, z;
+    Boolean a;
+    const q=10; const r=1; const s=20;
+    const f = false; const t = true;
+
+    x, y := q + 20 * 1 * (1 / 13 + r - s), q \ r / s;
+
+    x := f + 10; $ 2 errors, 1 from operation, 1 from assignment
+    x := 12 - t; $ 2 errors
+    x := r * t; $ 2 errors
+    x := s / false; $ 2 errors
+    x := f \ s; $ 2 errors
+    x, y := f + t, f - t; $ 4 errors
+    x, y ,z := f * t, f / t, f \ t; $ 6 errors
+    
+    a := q + r; $ 1 error
+    a := false - false; $ 2 errors
+end;

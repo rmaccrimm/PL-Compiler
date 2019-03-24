@@ -36,7 +36,7 @@ TEST_CASE("Constant redefinitions", "[const-defs]")
 TEST_CASE("Mixed redefinitions", "[all-defs]")
 { 
     std::vector<Token> tlist = read_file("test/src_files/scope/mixed_redefines");
-    REQUIRE(P.verify_syntax(&tlist) == 4);
+    REQUIRE(P.verify_syntax(&tlist) == 30);
 }
 
 TEST_CASE("No redefinitions", "[all-defs-good]")
@@ -54,7 +54,7 @@ TEST_CASE("Array redefinitions", "[arr-defs]")
 TEST_CASE("Procedure redefinitions", "[proc-defs]")
 { 
     std::vector<Token> tlist = read_file("test/src_files/scope/proc_redefined");
-    REQUIRE(P.verify_syntax(&tlist) == 3);
+    REQUIRE(P.verify_syntax(&tlist) == 2);
 }
 
 TEST_CASE("Procedure scope", "[proc-scope]")
@@ -67,4 +67,16 @@ TEST_CASE("Array bounds type", "[array-bounds]")
 {
     std::vector<Token> tlist = read_file("test/src_files/type/array_size");
     REQUIRE(P.verify_syntax(&tlist) == 5);
+}
+
+TEST_CASE("Assigning literal", "[assign-literal]")
+{
+    std::vector<Token> tlist = read_file("test/src_files/type/assigning_literals");
+    REQUIRE(P.verify_syntax(&tlist) == 20);
+}
+
+TEST_CASE("Assigning procedures", "[assign-proc]")
+{
+    std::vector<Token> tlist = read_file("test/src_files/type/assigning_procs");
+    REQUIRE(P.verify_syntax(&tlist) == 9);
 }
