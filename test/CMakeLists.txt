@@ -10,6 +10,7 @@ add_library(compiler
 add_executable(run_tests
     main.cpp
     test_scanner.cpp
+    test_parser.cpp
 )
 
 target_link_libraries(run_tests compiler)

@@ -41,6 +41,7 @@ void Parser::print(std::string msg)
 
 int Parser::verify_syntax(std::vector<Token> *input_tokens)
 {
+    num_errors = 0;
     next_token = input_tokens->begin();
     skip_whitespace();
     program();
@@ -99,10 +100,10 @@ bool Parser::syntax_error(std::string non_terminal)
     return synchronize(non_terminal);
 }
 
-void Parser::scope_error(Token t)
+void Parser::scope_error(std::string id)
 {
     error_preamble();
-    std::cerr << "Identifier " << t.lexeme << " already exists" << std::endl;
+    std::cerr << "Identifier " << id << " already defined" << std::endl;
 }
 
 bool Parser::synchronize(std::string non_terminal)
@@ -195,6 +196,16 @@ bool Parser::definition()
     return true;
 }
 
+bool Parser::check_scope(std::string id) 
+{
+    Block& current_block = block_table.top();
+    if (current_block.find(id) != current_block.end()) {
+        scope_error(id);
+        return false;
+    }
+    return true;
+}
+
 bool Parser::constant_definition()
 {
     std::string nonterm = "constant_definition";
@@ -213,21 +224,12 @@ bool Parser::constant_definition()
     auto id_tok = *(next_token - 3);
     auto id = id_tok.lexeme;
 
-    std::cout << id << std::endl;
-    // Check scope
-    Block& current_block = block_table.top();
-    if (current_block.find(id) != current_block.end()) {
-        scope_error(id_tok);
-    }
-    // Determine type and insert
-    else {
-        auto const_tok = *(next_token - 1);
-        auto s = const_tok.symbol;
+    if (check_scope(id)) {
+        // Determine type and insert
+        auto s = (next_token - 1)->symbol;
         auto type = (s == NUMERAL) ? PLType::INT_CONST : PLType::BOOL_CONST;
-        current_block[id] = {type, 1};
+        block_table.top()[id] = {type, 1};
     }
-    std::cout << block_table.size() << std::endl;
-    // std::cout << (int)std::get<0>(block_table.top()[id]) << ' ' << std::get<1>(block_table.top()[id]) << std::endl;
     return true;
 }
 
@@ -235,42 +237,69 @@ bool Parser::variable_definition()
 {
 	print("variable_definition");
     depth++;
-    TRY(type_symbol)
-    TRY(variable_definition_type)
+    PLType type;
+    if (!type_symbol(type)) {
+        return false;
+    }
+    if (!variable_definition_type(type)) {
+        return false;
+    }
     depth--;
     return true;
 }
 
-bool Parser::variable_definition_type()
+bool Parser::variable_definition_type(PLType type)
 {
+    assert(type == PLType::BOOL_VAR || type == PLType::INT_VAR);
+
     std::string nonterm = "variable_definition_type";
     print(nonterm);
 	depth++;
+
+    std::vector<std::string> vars;
+    int size = 1;
+
     auto s = next_token->symbol;
     if (s == IDENTIFIER) {
-        TRY(variable_list)
+        if (!variable_list(vars)) {
+            return false;
+        }
     }
     else if (s == ARRAY) { 
         MATCH_AND_SYNC(ARRAY, nonterm)
-        TRY(variable_list)
+        if (!variable_list(vars)) {
+            return false;
+        }
         MATCH_AND_SYNC(LEFT_BRACKET, nonterm)
         TRY(constant)
         MATCH_AND_SYNC(RIGHT_BRACKET, nonterm)
+        // After matching sequence look back 2 tokens to get size of the array(s)
+        size = (next_token - 2)->value;
     }
     else {
         return syntax_error(nonterm);
     }
 	depth--;
+    for (auto &id: vars) {
+        if (check_scope(id)) {
+            block_table.top()[id] = {type, size};
+        }
+    }
     return true;
 }
 
-bool Parser::type_symbol()
+bool Parser::type_symbol(PLType &type)
 {
     std::string nonterm = "type_symbol";
     print(nonterm);
 	depth++;
     auto s = next_token->symbol;
-    if (s == INT || s == BOOL) {
+    if (s == INT) {
+        type = PLType::INT_VAR;
+        MATCH_AND_SYNC(s, nonterm);
+    }
+    else if (s == BOOL) {
+        type = PLType::BOOL_VAR;
         MATCH_AND_SYNC(s, nonterm);
     }
     else {
@@ -280,18 +309,21 @@ bool Parser::type_symbol()
     return true;
 }
 
-bool Parser::variable_list()
+bool Parser::variable_list(std::vector<std::string> &var_list)
 {
     std::string nonterm = "variable_list";
     print(nonterm);
 	depth++;
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
-    TRY(variable_list_end)
+    var_list.push_back((next_token-1)->lexeme);
+    if (!variable_list_end(var_list)) {
+        return false;
+    }
 	depth--;
     return true;
 }
 
-bool Parser::variable_list_end()
+bool Parser::variable_list_end(std::vector<std::string> &var_list)
 {
     std::string nonterm = "variable_list_end";
     print(nonterm);
@@ -300,7 +332,10 @@ bool Parser::variable_list_end()
     if (s == COMMA) {
         MATCH_AND_SYNC(s, nonterm);
         MATCH_AND_SYNC(IDENTIFIER, nonterm);
-        TRY(variable_list_end)
+        var_list.push_back((next_token-1)->lexeme);
+        if (!variable_list_end(var_list)) {
+            return false;
+        }
     }
     // epsilon production
     else if (!check_follow(nonterm)) {
@@ -317,8 +352,23 @@ bool Parser::procedure_definition()
 	depth++;
     MATCH_AND_SYNC(PROC, nonterm)    
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
-    TRY(block)
+
+    auto id = (next_token - 1)->lexeme;
+    if (check_scope(id)) {
+        block_table.top()[id] = {PLType::PROCEDURE, 1};
+    }
+    /*  Push a new block onto the stack that is initially identical to the previous block. This 
+        allows the procedure to access variables in the outer scope, but does not allow later 
+        statements to use variables defined in the procedure 
+    */
+    Block proc_block = block_table.top();
+    block_table.push(proc_block);
+    bool success = block();
+    block_table.pop();
 	depth--;
+    if (!success) {
+        return false;
+    }
     return true;
 } 
 

@@ -11,10 +11,8 @@
 // All of the valid types in PL
 enum class PLType 
 {
-    INT_ARRAY,
     INT_VAR,
     INT_CONST,
-    BOOL_ARRAY,
     BOOL_VAR,
     BOOL_CONST,
     PROCEDURE,
@@ -75,11 +73,14 @@ private:
     // When none of the predict symbols are found, print error message and attempt to synchronize
     bool syntax_error(std::string non_terminal);
 
-    void scope_error(Token t);
+    void scope_error(std::string identifier);
 
     void type_error(Token t);
 
     bool check_follow(std::string non_terminal);
+
+    // Check if identifier has already been defined in current scope, return true if not
+    bool check_scope(std::string id);
 
     // When in an error state, skip input symbols until one is found from which parsing can continue
     bool synchronize(std::string non_terminal); 
@@ -91,6 +92,8 @@ private:
         correctly, or was able to recover from an error. The only situation in which false is 
         returned is when the end of file was reach prematurely, in which case tha caller returns
         false as well.
+
+        Reference parameters in functions are used to return additional values
     */
     bool program();
     bool block();
@@ -98,10 +101,10 @@ private:
     bool definition();
     bool constant_definition();
     bool variable_definition();
-    bool variable_definition_type();
-    bool type_symbol();
-    bool variable_list();
-    bool variable_list_end();
+    bool variable_definition_type(PLType type);
+    bool type_symbol(PLType &type);
+    bool variable_list(std::vector<std::string> &var_list);
+    bool variable_list_end(std::vector<std::string> &var_list);
     bool procedure_definition();
     bool statement_part();
     bool statement();
