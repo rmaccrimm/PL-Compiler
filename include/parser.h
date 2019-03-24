@@ -6,7 +6,32 @@
 #include <string>
 #include <map>
 #include <set>
+#include <stack>
 
+// All of the valid types in PL
+enum class PLType 
+{
+    INT_ARRAY,
+    INT_VAR,
+    INT_CONST,
+    BOOL_ARRAY,
+    BOOL_VAR,
+    BOOL_CONST,
+    PROCEDURE,
+    UNDEFINED
+};
+
+/*  A block table Entry stores:
+    - the type of the variable, defined above
+    - the size of the variable (greater than 1 only for arrays)
+*/
+typedef std::pair<PLType, int> BlockData;
+
+// A block is a set of names of identifiers, and the associated data
+typedef std::map<std::string, BlockData> Block;
+
+
+// Recursive descent parser which perform syntax, type and scope checking
 class Parser
 {
 public:
@@ -22,6 +47,20 @@ public:
     int verify_syntax(std::vector<Token> *input_tokens);
 
 private:
+    // Nonterminal follow sets
+    std::map<std::string, std::set<Symbol>> follow;
+
+    // The "lookahead" token for LL(1) parsing
+    std::vector<Token>::iterator next_token;
+
+    // The Block Table, for scope and type checking
+    std::stack<Block> block_table;
+
+    // Used to track height of call stack for printing function calls with indentation
+    int depth;
+    int num_errors;
+    int line;
+
     // Move to next character in input. Return false if EOF read
     bool read_next();
 
@@ -31,8 +70,14 @@ private:
     // Check next token in input and advance if symbol matches s
     bool match(Symbol s);
 
+    void error_preamble();
+
     // When none of the predict symbols are found, print error message and attempt to synchronize
     bool syntax_error(std::string non_terminal);
+
+    void scope_error(Token t);
+
+    void type_error(Token t);
 
     bool check_follow(std::string non_terminal);
 
@@ -95,12 +140,7 @@ private:
     // Initialize first and follow sets
     void init_symbol_sets();
 
-    std::map<std::string, std::set<Symbol>> follow;
-    std::vector<Token>::iterator next_token;
-    int line;
-    // Used to track height of call stack for printing function calls with indentation
-    int depth;
-    int num_errors;
+    
 };
 
 #endif
