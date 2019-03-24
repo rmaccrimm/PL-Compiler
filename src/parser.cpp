@@ -14,7 +14,7 @@
 #define TRY(func) if(!func()) { return false; }
 
 /*  When matching, continue only if successful, otherwise attempt to synchronize and skip the
-    rest of the noterminal function
+    rest of the current noterminal function
 */
 #define MATCH_AND_SYNC(symbol, nonterminal) if (!match(symbol)) { return synchronize(nonterminal); }
 
