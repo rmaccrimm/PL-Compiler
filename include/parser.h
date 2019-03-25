@@ -8,7 +8,7 @@
 #include <set>
 #include <stack>
 
-// All of the valid types in PL
+// All of the valid types of identifiers
 enum class PLType 
 {
     INT_VAR,
@@ -36,10 +36,7 @@ public:
     // Construct a parser to verify the given input represents a syntactically correct PL program
     Parser();
 
-    /*  Parse input and verify it can be derived from the PL language grammar. The call stack is 
-        printed as it runs, showing the structure of the parse tree. 
-        
-        When an error is encountered -- TBD
+    /*  Parse input and verify it can be derived from the PL language grammar.
         Returns the number of errors found, 0 on success.
     */
     int verify_syntax(std::vector<Token> *input_tokens);
@@ -71,23 +68,21 @@ private:
     // Check next token in input and advance if symbol matches s
     bool match(Symbol s);
 
+    // Print error number and line on which error occurred
     void error_preamble();
 
-    // When none of the predict symbols are found, print error message and attempt to synchronize
+    // Types of error messages
     bool syntax_error(std::string non_terminal);
-
     void scope_error(std::string identifier, bool define=true);
-
     void type_error(std::string err_mgs);
 
-    void type_error(Token t);
-
+    // lookup next token in follow set of non-terminal  
     bool check_follow(std::string non_terminal);
 
     // Check if identifier has already been defined in current scope
     bool in_scope(std::string id);
 
-    // When in an error state, skip input symbols until one is found from which parsing can continue
+    // When in an error state, skip input tokens until one is found from which parsing can continue
     bool synchronize(std::string non_terminal); 
 
     // Used to print the function call stack 
@@ -146,9 +141,7 @@ private:
     bool constant(PLType &type);
 
     // Initialize first and follow sets
-    void init_symbol_sets();
-
-    
+    void init_symbol_sets();    
 };
 
 #endif
