@@ -78,6 +78,8 @@ private:
 
     void scope_error(std::string identifier, bool define=true);
 
+    void type_error(std::string err_mgs);
+
     void type_error(Token t);
 
     bool check_follow(std::string non_terminal);
@@ -104,7 +106,7 @@ private:
     bool definition();
     bool constant_definition();
     bool variable_definition();
-    bool variable_definition_type(PLType type);
+    bool variable_definition_type(PLType varlist_type);
     bool type_symbol(PLType &type);
     bool variable_list(std::vector<std::string> &var_list);
     bool variable_list_end(std::vector<std::string> &var_list);

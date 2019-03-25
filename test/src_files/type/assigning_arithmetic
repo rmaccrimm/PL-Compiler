@@ -17,4 +17,4 @@ begin
     
     a := q + r; $ 1 error
     a := false - false; $ 2 errors
-end;
+end.

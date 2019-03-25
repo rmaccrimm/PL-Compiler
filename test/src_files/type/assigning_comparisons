@@ -1,10 +1,36 @@
-$ assigning the result of arithmetic expressions to vars
+$ assigning the result of comparisons and logic operations - expect 25 errors
 begin
     integer x, y, z;
     Boolean a, b, c;
-    const q=10, r=1, s=20;
+    Boolean array B[10];
+    const q=10; const r = 10; const s = 12;
     const f = false; const t = true;
+    proc func begin end;
 
-    x := q + 20 * 1
+    a := ~f;
+    x := ~false; $ 1 error
+    B[r] := ~b;
+    x := ~10; $ 2 errors
+    x := ~y; $ 2 errors
+    b := ~func; $ 2 errors
 
-end;
+    $ some valid expression
+    a := 1 < x;
+    a := q = 12;
+    a := ~(15 < r);
+    a := f & t;
+    a := true | f;
+    a := ~(24 > 10) & t | (z = x);
+
+    x := 1 < 10; $ 1 error
+    x := ~t; $ 1 error
+    x := b & c; $ 1 error
+    x := 10 = 10; $ 1 error
+
+    b := f < 12; $ 2 errors
+    c := 6 & 6; $ 2 errors
+    a,b,c := 12 > false, q < t, b < c; $ 6 errors
+
+    a := func < 12; $ 2 errors
+    B[x] := func = func; $ 2 errors
+end.

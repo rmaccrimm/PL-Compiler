@@ -3,10 +3,11 @@
 #include <cassert>
 #include <set>
 
+// Change to 1 for debugging purposes
 #define PRINT 0
 #define INDENT 1
 
-/*  Two macros are used to reduce some of the typing in the nonterminal functions.
+/*  Three macros are used to reduce some of the typing in the nonterminal functions.
 
     All nonterminal functions that call another nonterminal continue only if true is returned, 
     returning false otherwise.
@@ -25,23 +26,10 @@
 // Slightly simpler syntax for looking up an element of a set 
 bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
 
-
-bool const_type(PLType t)
-{
-    return t == PLType::BOOL_CONST || t == PLType::INT_CONST;
-}
-
-
-bool bool_type(PLType t)
-{
-    return t == PLType::BOOL_CONST || t == PLType::BOOL_VAR;
-}
-
-
-bool int_type(PLType t)
-{
-    return t == PLType::INT_CONST || t == PLType::INT_VAR;
-}
+// Groups of types
+bool const_type(PLType t) { return t == PLType::BOOL_CONST || t == PLType::INT_CONST; }
+bool bool_type(PLType t) { return t == PLType::BOOL_CONST || t == PLType::BOOL_VAR; }
+bool int_type(PLType t) { return t == PLType::INT_CONST || t == PLType::INT_VAR; }
 
 
 Parser::Parser(): line{1}, depth{0}, num_errors{0}
@@ -49,7 +37,7 @@ Parser::Parser(): line{1}, depth{0}, num_errors{0}
     init_symbol_sets();
 }
 
-
+// Debugging function - prints the call stack
 void Parser::print(std::string msg) 
 {
     if (PRINT) {
@@ -78,7 +66,7 @@ bool Parser::read_next()
 {
     if (next_token->symbol == END_OF_FILE) {
         num_errors++;
-        std::cerr << "Fatal Error: Reached end of file while parsing" << std::endl;
+        std::cout << "Fatal Error: Reached end of file while parsing" << std::endl;
         return false;
     }
     next_token++;
@@ -102,7 +90,7 @@ bool Parser::match(Symbol s)
 {
     if (s != next_token->symbol) {
         num_errors++;
-        std::cerr << "Error " << num_errors << " on line " << line << ": Expected " 
+        std::cout << "Error " << num_errors << " on line " << line << ": Expected " 
                   << SYMBOL_STRINGS.at(s) << ", found " << SYMBOL_STRINGS.at(next_token->symbol) 
                   << std::endl;
         return false;
@@ -123,14 +111,15 @@ bool Parser::check_follow(std::string non_terminal)
 void Parser::error_preamble()
 {
     num_errors++;
-    std::cerr << "Error " << num_errors << " on line " << line << ": ";
+    std::cout << "Error " << num_errors << " on line " << line << ": ";
 }
 
 
 bool Parser::syntax_error(std::string non_terminal)
 {
     error_preamble();
-    std::cerr << "Unexpected " << SYMBOL_STRINGS.at(next_token->symbol) << " symbol" << std::endl; 
+    std::cout << "SYNTAX ERROR - Unexpected " << SYMBOL_STRINGS.at(next_token->symbol) 
+              << " symbol" << std::endl; 
     return synchronize(non_terminal);
 }
 
@@ -138,24 +127,32 @@ bool Parser::syntax_error(std::string non_terminal)
 void Parser::scope_error(std::string id, bool defined)
 {
     error_preamble();
+    std::cout << "SCOPE ERROR - ";
     if (defined) {
-        std::cerr << "Identifier " << id << " already defined" << std::endl;
+        std::cout << "Identifier " << id << " already defined" << std::endl;
     }
     else {
-        std::cerr << "Identifier " << id << " used before defined" << std::endl;
+        std::cout << "Identifier " << id << " used before defined" << std::endl;
     }
+}
+
+void Parser::type_error(std::string msg)
+{
+    error_preamble();
+    std::cout << "TYPE ERROR - " << msg << std::endl;
 }
 
 
 bool Parser::synchronize(std::string non_terminal)
 {
     auto sync = follow[non_terminal];
+    // Skip input tokens until something in the follow set of the current token is found
     while (!sfind(sync, next_token->symbol)) {
         if (!read_next()) {
             return false;
         }
     }
-    std::cerr << "-- Resuming from " << SYMBOL_STRINGS.at(next_token->symbol) << " on line " << line
+    std::cout << "-- Resuming from " << SYMBOL_STRINGS.at(next_token->symbol) << " on line " << line
               << std::endl; 
     return true;
 }
@@ -173,9 +170,10 @@ bool Parser::program()
     block_table.pop();
 
     MATCH_AND_SYNC(PERIOD, nonterm);
+    // Matching an eof token would normally produce an error message, so handle in special case here
     if (next_token->symbol != END_OF_FILE) {
         num_errors++;
-        std::cerr << "Error " << num_errors << " on line " << line << ": Expected " 
+        std::cout << "Error " << num_errors << " on line " << line << ": Expected " 
                   << SYMBOL_STRINGS.at(END_OF_FILE) << ", found " 
                   << SYMBOL_STRINGS.at(next_token->symbol) << std::endl;
     }
@@ -213,7 +211,7 @@ bool Parser::definition_part()
     // epsilon production
     else if (!check_follow(nonterm)) {
         depth--;
-        return synchronize(nonterm);
+        return syntax_error(nonterm);
     }
     return true;
 }
@@ -258,12 +256,13 @@ bool Parser::constant_definition()
     MATCH_AND_SYNC(CONST, nonterm);    
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
     MATCH_AND_SYNC(EQUALS, nonterm);
+
     PLType type = PLType::UNDEFINED;
     TRY_WITH_ARG(constant, type);
     depth--;
-    if (type != PLType::INT_CONST && type != PLType::BOOL_CONST) {
-        error_preamble();
-        std::cerr << "Non const value cannot be assigned a constant" << std::endl;
+
+    if (!const_type(type)) {
+        type_error("Non const value cannot be assigned a constant");
     }
     auto id = matched_id.lexeme;
     if (!in_scope(id)) {
@@ -281,21 +280,20 @@ bool Parser::variable_definition()
 	print("variable_definition");
     depth++;
     PLType type;
+    // Type is first determined from type_symbol
     TRY_WITH_ARG(type_symbol, type);
+    // type contains the type of the list of identifiers that follows
     TRY_WITH_ARG(variable_definition_type, type);
     depth--;
     return true;
 }
 
 
-bool Parser::variable_definition_type(PLType type)
+bool Parser::variable_definition_type(PLType varlist_type)
 {
-    assert(type == PLType::BOOL_VAR || type == PLType::INT_VAR);
-
     std::string nonterm = "variable_definition_type";
     print(nonterm);
 	depth++;
-
     std::vector<std::string> vars;
     int size = 1;
 
@@ -307,11 +305,12 @@ bool Parser::variable_definition_type(PLType type)
         MATCH_AND_SYNC(ARRAY, nonterm);
         TRY_WITH_ARG(variable_list, vars);
         MATCH_AND_SYNC(LEFT_BRACKET, nonterm);
-        PLType type = PLType::UNDEFINED;
-        TRY_WITH_ARG(constant, type);
-        if (type != PLType::INT_CONST) {
-            error_preamble();
-            std::cerr << "Array bounds must be of type const integer" << std::endl;
+
+        PLType bound_type = PLType::UNDEFINED;
+        TRY_WITH_ARG(constant, bound_type);
+
+        if (bound_type != PLType::INT_CONST) {
+            type_error("Array bounds must be of type const integer");
         }
         MATCH_AND_SYNC(RIGHT_BRACKET, nonterm);
     }
@@ -321,7 +320,7 @@ bool Parser::variable_definition_type(PLType type)
 	depth--;
     for (auto &id: vars) {
         if (!in_scope(id)) {
-            block_table.top()[id] = {type, size};
+            block_table.top()[id] = {varlist_type, size};
         }
         else {
             scope_error(id);
@@ -359,7 +358,7 @@ bool Parser::variable_list(std::vector<std::string> &var_list)
     print(nonterm);
 	depth++;
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
-    var_list.push_back((next_token-1)->lexeme);
+    var_list.push_back(matched_id.lexeme);
     TRY_WITH_ARG(variable_list_end, var_list);
 	depth--;
     return true;
@@ -494,6 +493,15 @@ bool Parser::read_statement()
     MATCH_AND_SYNC(READ, nonterm);
     std::vector<PLType> types;
     TRY_WITH_ARG(variable_access_list, types);
+    for (auto t: types) {
+        if (const_type(t)) {
+            type_error("Cannot read value for constant");
+        }
+        if (t == PLType::PROCEDURE || t == PLType::UNDEFINED) {
+            std::string ts = (t == PLType::PROCEDURE ? "procedure" : "undefined");
+            type_error("Cannot read variable of type " + ts);
+        }
+    }
 	depth--;
     return true;
 }
@@ -543,6 +551,12 @@ bool Parser::write_statement()
     MATCH_AND_SYNC(WRITE, nonterm);
     std::vector<PLType> types;
     TRY_WITH_ARG(expression_list, types);
+    for (auto t: types) {
+        if (!int_type(t) && !bool_type(t)) {
+            std::string ts = (t == PLType::PROCEDURE ? "procedure" : "undefined");
+            type_error("Cannot write variable of type " + ts);
+        }
+    }
 	depth--;
     return true;
 }
@@ -554,14 +568,14 @@ bool Parser::expression_list(std::vector<PLType> &types)
 	depth++;
     PLType expr_type = PLType::UNDEFINED; 
     TRY_WITH_ARG(expression, expr_type);
-    types.push_back(epxr_type);
+    types.push_back(expr_type);
     TRY_WITH_ARG(expression_list_end, types);
 	depth--;
     return true;
 }
 
 
-bool Parser::expression_list_end()
+bool Parser::expression_list_end(std::vector<PLType> &types)
 {
     std::string nonterm = "expression_list_end";
     print(nonterm);
@@ -596,20 +610,17 @@ bool Parser::assignment_statement()
 
     if (var_types.size() != expr_types.size()) {
         error_preamble();
-        std::cerr << "Number of variables does not match number of expressions" << std::endl;
+        std::cout << "Number of variables does not match number of expressions" << std::endl;
     }
     else {
         for (int i = 0; i < var_types.size(); i++) {
             auto v = var_types[i];
             auto e = expr_types[i];
             if (const_type(v)) {
-                error_preamble();
-                std::cerr << "Cannot assign a value to const type" << std::endl;
+                type_error("Cannot assign a value to const type");
             }
             else if (!((int_type(v) && int_type(e)) || (bool_type(v) && bool_type(e)))) {
-                error_preamble();
-                std::cerr << "Mismatch between left and right hand sides of assignment" 
-                          << std::endl;
+                type_error("Mismatch between types of LHS and RHS of assignment statement");
             }
         }
     }
@@ -623,6 +634,15 @@ bool Parser::procedure_statement()
 	depth++;
     MATCH_AND_SYNC(CALL, nonterm);
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
+    auto id = matched_id.lexeme;
+    if (!in_scope(id)) {
+        scope_error(id, false);
+    }
+    // first element of a Block tuple is the type - plan to replace with more obvious struct
+    auto type = std::get<0>(block_table.top()[id]);
+    if (type != PLType::PROCEDURE) {
+        type_error("Cannot call a non procedure type");
+    }
 	depth--;
     return true;
 }
@@ -691,7 +711,11 @@ bool Parser::guarded_command()
     std::string nonterm = "guarded_command";
     print(nonterm);
 	depth++;
-    TRY(expression);
+    auto guard_type = PLType::UNDEFINED;
+    TRY_WITH_ARG(expression, guard_type);
+    if (!bool_type(guard_type)) {
+        type_error("Guarded command must evaluate to Boolean type");
+    }
     MATCH_AND_SYNC(RIGHT_ARROW, nonterm);
     TRY(statement_part);
 	depth--;
@@ -721,6 +745,13 @@ bool Parser::expression_end(PLType &lhs_type)
         auto rhs_type = PLType::UNDEFINED;
         TRY_WITH_ARG(primary_expression, rhs_type);
         TRY_WITH_ARG(expression_end, rhs_type);
+        if (!bool_type(lhs_type) || !bool_type(rhs_type)) {
+            type_error("Both sides of logical operation must be Boolean");
+            lhs_type = PLType::UNDEFINED;
+        }
+        else {
+            lhs_type = PLType::BOOL_CONST;
+        }
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -759,7 +790,7 @@ bool Parser::primary_expression(PLType &type)
 }
 
 
-bool Parser::primary_expression_end()
+bool Parser::primary_expression_end(PLType &lhs_type)
 {
     std::string nonterm = "primary_expression_end"; 
     print(nonterm);
@@ -767,7 +798,15 @@ bool Parser::primary_expression_end()
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == GREATER_THAN || s == EQUALS) {
         TRY(relational_operator);
-        TRY(simple_expression);
+        auto rhs_type = PLType::UNDEFINED;
+        TRY_WITH_ARG(simple_expression, rhs_type);
+        if (!int_type(lhs_type) || !int_type(rhs_type)) {
+            type_error("Both operands of a comparison must be integers");
+            lhs_type = PLType::UNDEFINED;
+        }
+        else {
+            lhs_type = PLType::BOOL_CONST;
+        }
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -805,16 +844,15 @@ bool Parser::simple_expression(PLType &type)
     if (s == SUBTRACT) {
         match(s);
         TRY_WITH_ARG(term, type);
-        if (type != INT_VAR && type != INT_CONST) {
-            error_preamble();
-            std::cerr << "Cannot negate a non integer value" << std::endl;
+        if (!int_type(type)) {
+            type_error("Cannot negate a non integer value");
+            type = PLType::UNDEFINED;
         }
-        auto first_type = PLType::UNDEFINED;
-        TRY_WITH_ARG(simple_expression_end, first_type);
+        TRY_WITH_ARG(simple_expression_end, type);
     }
     else if (sfind(first, s)) {
         TRY_WITH_ARG(term, type);
-        TRY(simple_expression_end);
+        TRY_WITH_ARG(simple_expression_end, type);
     }
     else {
         return syntax_error(nonterm);
@@ -824,7 +862,7 @@ bool Parser::simple_expression(PLType &type)
 }
 
 
-bool Parser::simple_expression_end(PLType lhs_type)
+bool Parser::simple_expression_end(PLType &lhs_type)
 {
     std::string nonterm = "simple_expression_end";
     print(nonterm);
@@ -833,10 +871,16 @@ bool Parser::simple_expression_end(PLType lhs_type)
     if (s == ADD || s == SUBTRACT) {
         TRY(adding_operator);
         auto rhs_type = PLType::UNDEFINED;
-        TRY_WITH_ARG(term, type);
-        if (!(prev_type == ))
+        TRY_WITH_ARG(term, rhs_type);
+        if (int_type(lhs_type) && int_type(rhs_type)) {
+            lhs_type = PLType::INT_CONST;
+        }
+        else {
+            type_error("Both operands of addition type operator must be integers");
+            lhs_type = PLType::UNDEFINED;
+        }
         depth--;
-        TRY(simple_expression_end);
+        TRY_WITH_ARG(simple_expression_end, lhs_type);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -853,7 +897,7 @@ bool Parser::adding_operator()
     print(nonterm);
 	depth++;
     auto s = next_token->symbol;
-    if (s == ADD || s == OR) {
+    if (s == ADD || s == SUBTRACT) {
         match(s);
     }
     else {
@@ -886,14 +930,12 @@ bool Parser::term_end(PLType &lhs_type)
         TRY(multiplying_operator);
         auto rhs_type = PLType::UNDEFINED;
         TRY_WITH_ARG(factor, rhs_type);
-        if ((lhs_type != INT_CONST && lhs_type != INT_VAR) 
-            ||(rhs_type != INT_CONST && rhs_type != INT_VAR)) {
-            error_preamble();
-            std::cerr << "Both operands of multiplication type operators must be integers";
+        if (int_type(lhs_type) && int_type(rhs_type)) {
+            lhs_type = PLType::INT_CONST;
         }
         else {
-            // Always treat returned type of arithmetic operations as constant  
-            lhs_type = PLType::INT_CONST;
+            type_error("Both operands of multiplication type operators must be integers");
+            lhs_type = PLType::UNDEFINED;
         }
         depth--;
         TRY_WITH_ARG(term_end, lhs_type);
@@ -944,9 +986,13 @@ bool Parser::factor(PLType &type)
     else if (s == NOT) {
         match(s);
         TRY_WITH_ARG(factor, type);
-        if (type != PLType::BOOL_VAR && type != PLType::BOOL_CONST) {
-            error_preamble();
-            std::cerr << "Cannot take logical inverse of a non Boolean expression" << std::endl;
+        if (!bool_type(type)) {
+            type_error("Cannot take logical inverse of a non Boolean expression");
+            type = PLType::UNDEFINED;
+        }
+        else {
+            type = PLType::BOOL_CONST;
+
         }
     }
     else {
@@ -968,6 +1014,7 @@ bool Parser::variable_access(PLType &type)
         scope_error(id, false);
     }
     else {
+        // first element of a Block tuple is the type - plan to replace with more obvious struct
         type = std::get<0>(block_table.top()[id]);
     }
     TRY(variable_access_end);
@@ -975,7 +1022,7 @@ bool Parser::variable_access(PLType &type)
     return true;
 }
 
-// This function just determines if variables being accesed is single var or array  
+
 bool Parser::variable_access_end()
 {
     std::string nonterm = "variable_access_end";
@@ -983,9 +1030,7 @@ bool Parser::variable_access_end()
 	depth++;    
     auto s = next_token->symbol;
     if (s == LEFT_BRACKET) {
-        MATCH_AND_SYNC(s, nonterm);
-        TRY(expression);
-        MATCH_AND_SYNC(RIGHT_BRACKET, nonterm);
+        TRY(indexed_selector);
     }
     // epsilon production 
     else if (!check_follow(nonterm)) {
@@ -1002,7 +1047,12 @@ bool Parser::indexed_selector()
     print(nonterm);
 	depth++;
     MATCH_AND_SYNC(LEFT_BRACKET, nonterm);
-    TRY(expression);
+    auto index_type = PLType::UNDEFINED;
+    TRY_WITH_ARG(expression, index_type);
+    if (!int_type(index_type)) {
+        error_preamble();
+        std::cout << "Array index must be integer type" << std::endl;
+    }
     match(RIGHT_BRACKET);
 	depth--;
     return true;
@@ -1028,6 +1078,7 @@ bool Parser::constant(PLType &type)
             scope_error(id, false);
         }
         else {
+            // first element of a Block tuple is the type - plan to replace with more obvious struct
             type = std::get<0>(block_table.top()[id]);
         }
         match(s);

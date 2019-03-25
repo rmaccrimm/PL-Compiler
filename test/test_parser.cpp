@@ -20,63 +20,85 @@ std::vector<Token> read_file(std::string fname) {
 
 Parser P;
 
+void run_test(std::string fname, int nerrors) 
+{
+    std::cout << fname << std::endl;
+    std::vector<Token> tlist = read_file(fname);
+    REQUIRE(P.verify_syntax(&tlist) == nerrors);
+    std::cout << std::endl;
+}
+
 TEST_CASE("Variable redefinitions", "[var-defs]")
 {
-    std::vector<Token> tlist = read_file("test/src_files/scope/var_redefined");
-    REQUIRE(P.verify_syntax(&tlist) == 4);
-
+    run_test("test/src_files/scope/var_redefined", 4);
 }
 
 TEST_CASE("Constant redefinitions", "[const-defs]") 
 {
-    std::vector<Token> tlist = read_file("test/src_files/scope/const_redefined");
-    REQUIRE(P.verify_syntax(&tlist) == 2);
+    run_test("test/src_files/scope/const_redefined", 2);
 }
 
 TEST_CASE("Mixed redefinitions", "[all-defs]")
 { 
-    std::vector<Token> tlist = read_file("test/src_files/scope/mixed_redefines");
-    REQUIRE(P.verify_syntax(&tlist) == 30);
+    run_test("test/src_files/scope/mixed_redefines", 30);
 }
 
 TEST_CASE("No redefinitions", "[all-defs-good]")
 { 
-    std::vector<Token> tlist = read_file("test/src_files/scope/no_redefines");
-    REQUIRE(P.verify_syntax(&tlist) == 0);
+    run_test("test/src_files/scope/no_redefines", 0);
 }
 
 TEST_CASE("Array redefinitions", "[arr-defs]")
 { 
-    std::vector<Token> tlist = read_file("test/src_files/scope/array_redefined");
-    REQUIRE(P.verify_syntax(&tlist) == 2);
+    run_test("test/src_files/scope/array_redefined", 2);
 }
 
 TEST_CASE("Procedure redefinitions", "[proc-defs]")
 { 
-    std::vector<Token> tlist = read_file("test/src_files/scope/proc_redefined");
-    REQUIRE(P.verify_syntax(&tlist) == 2);
+    run_test("test/src_files/scope/proc_redefined", 2);
 }
 
 TEST_CASE("Procedure scope", "[proc-scope]")
 { 
-    std::vector<Token> tlist = read_file("test/src_files/scope/redefined_in_func");
-    REQUIRE(P.verify_syntax(&tlist) == 3);
+    run_test("test/src_files/scope/redefined_in_func", 3);
 }
 
 TEST_CASE("Array bounds type", "[array-bounds]")
 {
-    std::vector<Token> tlist = read_file("test/src_files/type/array_size");
-    REQUIRE(P.verify_syntax(&tlist) == 5);
+    run_test("test/src_files/type/array_size", 5);
 }
 
 TEST_CASE("Assigning literal", "[assign-literal]")
 {
-    std::vector<Token> tlist = read_file("test/src_files/type/assigning_literals");
-    REQUIRE(P.verify_syntax(&tlist) == 20);
+    run_test("test/src_files/type/assigning_literals", 20);
 }
 
 TEST_CASE("Assigning procedures", "[assign-proc]")
 {
-    std::vector<Token> tlist = read_file("test/src_files/type/assigning_procs");
-    REQUIRE(P.verify_syntax(&tlist) == 9);
+    run_test("test/src_files/type/assigning_procs", 9);
+}
+
+TEST_CASE("Read and write statements", "[read-write]")
+{
+    run_test("test/src_files/type/read_write", 3);
+}
+
+TEST_CASE("Assign arithmetic expressions", "[assign-arithmetic]")
+{
+    run_test("test/src_files/type/assigning_arithmetic", 23);
+}
+
+TEST_CASE("Assign logic expressions", "[assign-logic]")
+{
+    run_test("test/src_files/type/assigning_comparisons", 25);
+}
+
+TEST_CASE("Guarded commands", "[guarded]")
+{
+    run_test("test/src_files/type/guarded_commands", 15);
+}
+
+TEST_CASE("Undefined variables", "[vars]")
+{
+    run_test("test/src_files/scope/vars_undefined", 23);
 }
