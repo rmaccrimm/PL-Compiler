@@ -1,0 +1,17 @@
+$ expect 3 errors
+begin
+    const n = 10;
+    integer a; 
+    Boolean b;
+    proc c
+    begin
+    end;
+    read n; $ error
+    read a;
+    read b;
+    read c; $ error
+    write n;
+    write a;
+    write b;
+    write c; $error
+end.

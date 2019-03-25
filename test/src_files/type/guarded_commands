@@ -1,0 +1,29 @@
+$ Expressions in guarded command lists - expect 14 errors
+begin
+    integer x, y; Boolean b;
+    integer array A[10];
+    const n = 12;
+    proc f begin end;
+    
+    if x > 10 -> skip;
+        [] ~b -> skip;
+        [] 12 -> skip; $ 1 error
+        [] A[x] -> skip; $ 1 error
+        [] n + 24 -> skip; $ 1 error
+        [] f -> skip; $ 1 error
+        [] x + y -> skip; $ 1 error
+        [] x * n-> skip; $ 1 error
+        [] n -> skip; $ 1 error
+    fi;
+    do ~(x + 245 < n * 13) -> skip;
+        [] ~b -> skip;
+        [] 12 -> skip; $ 1 error
+        [] A[x] -> skip; $ 1 error
+        [] n + 24 -> skip; $ 1 error
+        [] f -> skip; $ 1 error
+        [] x + y -> skip; $ 1 error
+        [] x * n -> skip; $ 1 error
+        [] n -> skip; $ 1 error
+        [] f -> skip; $ 1 error
+    od;
+end.
