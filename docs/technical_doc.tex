@@ -25,7 +25,7 @@
 
 \section{Purpose}
 
-The purpose of this program, in its current state, is to perform the scanning and parsing stages of compilation for a single PL source file and perform basic error detection. The input file is parsed into tokens, which are stored in an output text file. When an invalid identifier, numeral or other character is detected, an error message is printed to the console along with the line in which the error occurred. The sequence of tokens is then passed to the parser, which verifies that the sequence is valid according to the language grammar (given at the end of this document). As the parser runs, the call stack, representing the parse tree, is printed. If a syntax error is encountered, a message containing the line on which the error occurred and the problematic token is printed and the program terminates.
+The purpose of this program, in its current state, is to perform the scanning and parsing stages of compilation for a single PL source file and perform syntax, scope and type error detection with simple error recovery. The input file is parsed into tokens, which are stored in a list for the parsing stage. When an invalid identifier, numeral or other character is detected, an error message is printed to the console along with the line in which the error occurred. The sequence of tokens is then passed to the parser, which verifies that the sequence is valid according to the language grammar (given at the end of this document). If a syntax error is encountered, a message containing the line on which the error occurred and the source of the error is printed and the parser then attempts to recover. Recovering works by skipping input terminals until a member of the follow set for the current non terminal is found. While parsing, the scope and type of all identifiers and expressions are deduced in order to ensure variables are not used before they are defined, not redefined, and that the types are compatible with the operations being done.
 
 \section{Design}
 
@@ -41,7 +41,10 @@ The purpose of this program, in its current state, is to perform the scanning an
             \item[-] A simple class with symbol, lexeme, and value data members. They symbol is one of the values described above, lexeme is the actual text contained in the source file, and value is an integer currently only used to store the value of numerals (integer literals).
         \item[-] Only member functions are a default constructor, copy constructor and assignment operator 
         \end{itemize} 
-
+    \item[] \textbf{PLType}
+        \begin{itemize}
+            \item[-] An enumeration type containing the valid "kinds" of variables that an identifier or expression can represent. These are Boolean variable, Boolean constant, integer variable, integer constant, procedure, and undefined. During parsing, the type of each identifier and literal are deduced to check for consistency.
+        \end{itemize}
 \end{itemize}
 
 \subsection*{Classes}
@@ -66,22 +69,33 @@ The purpose of this program, in its current state, is to perform the scanning an
 
         \item[]\textbf{Parser}
             \begin{itemize}
-                \item[-] Verifies the input token sequence represents a valid PL program by constructing the parse tree according to the PL language grammar.
-                \item[-] \textbf{verify\_syntax}: Only public method, parses the input sequence. Uses predictive parsing with the recursive descent parsing technique. The class contains a private method corresponding to every non-terminal of the grammar, parsing is started by calling the program method. For a given production rule $A \longrightarrow B_1B_2B_3...$ the method for $A$ works by calling match($B_i$) if $B_i$ is a terminal symbol (token) or calling the method for $B_i$ if it is a non-terminal.
-                \item[-] When multiple production rules are available, the correct one is chosen by checking if the lookahead token (next\_token) is contained in the rule's FIRST set. If the production derives the empty string, the FOLLOW set is checked instead. Both sets have been determined by hand and are hard-coded into the functions. If none of the available production rules can correctly derive the lookahead token, a syntax error is thrown, which currently just prints an error message and crashes the program.
+                \item[-] Verifies the input token sequence represents a valid PL program by constructing the parse tree according to the PL language grammar. Also performs type and scope analysis, ensuring that variables are defined before used and not redefined, and that the types of variables (integer or Boolean) used in expressions are compatible.
+                \item[-] \textbf{verify\_syntax}: Only public method, parses the input sequence and returns the number of errors encountered. Uses predictive parsing with the recursive descent parsing technique. The class contains a private method corresponding to every non-terminal of the grammar, parsing is started by calling the program method. For a given production rule $A \longrightarrow B_1B_2B_3...$ the method for $A$ works by calling match($B_i$) if $B_i$ is a terminal symbol (token) or calling the method for $B_i$ if it is a non-terminal.
+                \item[-] When multiple production rules are available, the correct one is chosen by checking if the lookahead token (next\_token) is contained in the rule's FIRST set. If the production derives the empty string, the FOLLOW set is checked instead.
                 \item[-] \textbf{match}: Checks that the lookahead token matches the expected terminal symbol and advances to the next token in the input.
+                \item[-] \textbf{synchronize}: Whenever a syntax error is encountered, the program utilizes a panic-mode error recovery strategy. This function consults the follow set of the non-terminal in which the error occurred, to find a point from which parsing is likely to be able to continue. Input tokens are ignored until something in the follow set is found. 
+                \item[-] When a syntax error occurs, an error message is printed containing the line and name of the problematic symbol. The point from which parsing continued following the synchronize method is also printed. Scope and type errors produce an error message, but parsing just continues as normal (often leading to many redundant error messages). 
+                \item[-] \textbf{Block table}: Scope and type checking make use of a block table, which is a stack containing "blocks" which are maps from identifiers to block data - the variable type and size. Every time a new block is entered (anywhere begin is found in the program) a new block is pushed onto the stack, and is intially a copy of the block preceding it. This makes all variables accessible within nested blocks (procedures), but not the other way around - variables defined within a procedure are not accessible outside it. This also means variables within a block cannot share a name with any variables in the outer scope.
             \end{itemize}
 
         \item[]\textbf{Compiler}
             \begin{itemize}
                 \item[-] The main "Administration" class which is responsible for creating, managing and using the other component objects. Currently stores scanner and symbol table objects. The constructor takes a reference to an input file stream object as input, which is used to create the scanner object. 
-                \item[-] \textbf{scan}: there are two versions of this method that differ only in their output. One will write tokens to the provided output file stream in the format \textit{symbol-name lexeme value} (space-separated) while the other will simply fill a vector of tokens. Only the first is currently used.  
-                \item[-] Both scan methods make calls to the private \textbf{tokenize} method which repeatedly calls scanner's get\_token method until an end of file token is returned. Any time an error token is returned, the rest of the line is ignored. A line count is also maintained by incrementing every time a newline token is seen in order to output error messages which identify where errors occurred
+                \item[-] \textbf{run}: Compiler's only public method. Uses the tokenize method to create a list of tokens using the scanner get\_token method. If scanning completes without errors, the token list is passed to the parser to be analyzed.
+                \item[-] \textbf{tokenize}: private method - uses the scanner object to construct a token list and detect invalid characters. When an error is encountered, an error message is produced and the rest of the line ignored. If any errors are encountered during this stage of compilation, parsing will not occur.
             \end{itemize}
 
     \end{itemize}
 
     \section{Limitations/Possible Extensions}
+
+        \subsection{Part III}
+
+        At this point the compiler seems to be fairly robust, in terms of handling any sort of input without crashing and producing relevant error messages. The error messages themselves are the main thing that could be improved, as they currently point to a line of the program and the general sort of error (mismatch between types, undefined variable) but they could be more specific in some cases and provide more information on the state of the system, such as deduced variable types, which specific variable within a comma separated l,list, etc. Additionally a lot of error messages are redundant, since a scope error usually leads to a variable having undefined type, which causes a type error immediately after. 
+
+        The panic-mode error handling, while often succesful in continuing parsing, also tends to very quickly reach the end of file while skipping input, making only the first syntax error message very meaningful. Some other approach to constructing synchronization sets that is more specific to this grammar might be worth attempting. 
+
+        Overall code quality improvements could be made in a number of places, making the compiler easier to extend and improve. One thing in particular would be the introduction of some kind of error handling class, which might help cut back on the length of the parser class and help implement some of the error message improvements mentioned above.
 
         \subsection{Part II}
 
