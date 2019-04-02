@@ -73,9 +73,6 @@ private:
     // When in an error state, skip input tokens until one is found from which parsing can continue
     void synchronize(std::string non_terminal); 
 
-    // Used to print the function call stack 
-    void print(std::string msg);
-
     /*  Recursive procedures for nonterminals. True is returned if the nonterminal was either parsed
         correctly, or was able to recover from an error. The only situation in which false is 
         returned is when the end of file was reach prematurely, in which case tha caller returns
