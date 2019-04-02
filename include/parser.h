@@ -10,12 +10,12 @@
 #include <stack>
 #include <stdexcept>
 
+
 class eof_error: public std::runtime_error
 {
 public:
     eof_error(): std::runtime_error("Reached end of file while parsing") {}
 };
-
 
 // Recursive descent parser which perform syntax, type and scope checking
 class Parser
@@ -54,7 +54,7 @@ private:
     void skip_whitespace();
 
     // Check next token in input and advance if symbol matches s
-    bool match(Symbol s);
+    void match(Symbol s, std::string nonterminal);
 
     // Print error number and line on which error occurred
     void error_preamble();
@@ -64,11 +64,12 @@ private:
     PLType get_type(std::string id);
 
     // Types of error messages
-    void syntax_error(std::string non_terminal);
     void type_error(std::string err_mgs);
 
+    void syntax_error(std::string nonterm);
+
     // lookup next token in follow set of non-terminal  
-    bool check_follow(std::string non_terminal);
+    void check_follow(std::string non_terminal);
 
     // When in an error state, skip input tokens until one is found from which parsing can continue
     void synchronize(std::string non_terminal); 

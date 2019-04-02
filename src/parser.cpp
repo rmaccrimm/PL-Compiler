@@ -6,12 +6,7 @@
 using std::cerr;
 using std::endl;
 
-#define TRY(func) func()//if(!func()) return false
-#define TRY_WITH_ARG(func, arg) func(arg) //if (!func(arg)) return false
-#define MATCH_AND_SYNC(symbol, nonterminal) if (!match(symbol)) synchronize(nonterminal)
-
-
-// Slightly simpler syntax for looking up an element of a set 
+// Slightly simpler syntax for looking up an element of a set, return true if found
 bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
 
 // Groups of types
@@ -64,26 +59,18 @@ void Parser::skip_whitespace()
 }
 
 
-bool Parser::match(Symbol s)
+void Parser::match(Symbol s, std::string nonterminal)
 {
     if (s != next_token->symbol) {
-        num_errors++;
-        std::cout << "Error " << num_errors << " on line " << line << ": Expected " 
-                  << SYMBOL_STRINGS.at(s) << ", found " << SYMBOL_STRINGS.at(next_token->symbol) 
-                  << std::endl;
-        return false;
+        error_preamble();
+        cerr << "Expected " << SYMBOL_STRINGS.at(s) << ", found " 
+             << SYMBOL_STRINGS.at(next_token->symbol) << std::endl;
+        synchronize(nonterminal);
     }
     if (s == IDENTIFIER) {
         matched_id = *next_token;
     }
     read_next();
-    return true;
-}
-
-
-bool Parser::check_follow(std::string non_terminal)
-{
-    return sfind(follow[non_terminal], next_token->symbol);
 }
 
 
@@ -91,6 +78,41 @@ void Parser::error_preamble()
 {
     num_errors++;
     cerr << "Error " << num_errors << " on line " << line << ": ";
+}
+
+
+void Parser::syntax_error(std::string nonterminal)
+{
+    error_preamble();
+    cerr << "Unexpected " << SYMBOL_STRINGS.at(next_token->symbol) << " symbol" << endl;
+    synchronize(nonterminal);
+}
+
+
+void Parser::type_error(std::string msg)
+{
+    error_preamble();
+    std::cout << "TYPE ERROR - " << msg << std::endl;
+}
+
+
+void Parser::synchronize(std::string nonterminal)
+{
+    auto sync = follow[nonterminal];
+    // Skip input tokens until something in the follow set of the current token is found
+    while (!sfind(sync, next_token->symbol)) {
+        read_next();
+    }
+    cerr << "-- Resuming from " << SYMBOL_STRINGS.at(next_token->symbol) << " on line " 
+         << line << endl; 
+}
+
+
+void Parser::check_follow(std::string nonterminal)
+{
+    if (!sfind(follow[nonterminal], next_token->symbol)) {
+        syntax_error(nonterminal);
+    }
 }
 
 
@@ -119,41 +141,13 @@ PLType Parser::get_type(std::string id)
 }
 
 
-void Parser::syntax_error(std::string non_terminal)
-{
-    error_preamble();
-    std::cout << "SYNTAX ERROR - Unexpected " << SYMBOL_STRINGS.at(next_token->symbol) 
-              << " symbol" << std::endl; 
-    synchronize(non_terminal);
-}
-
-
-void Parser::type_error(std::string msg)
-{
-    error_preamble();
-    std::cout << "TYPE ERROR - " << msg << std::endl;
-}
-
-
-void Parser::synchronize(std::string non_terminal)
-{
-    auto sync = follow[non_terminal];
-    // Skip input tokens until something in the follow set of the current token is found
-    while (!sfind(sync, next_token->symbol)) {
-        read_next();
-    }
-    std::cout << "-- Resuming from " << SYMBOL_STRINGS.at(next_token->symbol) << " on line " << line
-              << std::endl; 
-}
-
-
 void Parser::program()
 {
     std::string nonterm = "program";
     block_table.push_new();
-    TRY(block);
+    block();
     block_table.pop();
-    MATCH_AND_SYNC(PERIOD, nonterm);
+    match(PERIOD, nonterm);
     // Matching an eof token would normally produce an error message, so handle in special case here
     if (next_token->symbol != END_OF_FILE) {
         num_errors++;
@@ -167,10 +161,10 @@ void Parser::program()
 void Parser::block()
 {
     std::string nonterm = "block";
-    MATCH_AND_SYNC(BEGIN, nonterm);
-    TRY(definition_part);
-    TRY(statement_part);
-    MATCH_AND_SYNC(END, nonterm);
+    match(BEGIN, nonterm);
+    definition_part();
+    statement_part();
+    match(END, nonterm);
 }
 
 
@@ -180,17 +174,15 @@ void Parser::definition_part()
     std::set<Symbol> first{CONST, INT, BOOL, PROC};
     auto s = next_token->symbol;
     if (sfind(first, s)) {
-        TRY(definition);
-        MATCH_AND_SYNC(SEMICOLON, nonterm);        
+        definition();
+        match(SEMICOLON, nonterm);        
         
-        TRY(definition_part);
+        definition_part();
     }
     // epsilon production
-    else if (!check_follow(nonterm)) {
-        
-        syntax_error(nonterm);
+    else {
+        check_follow(nonterm);        
     }
-    // return true;
 }
 
 
@@ -199,13 +191,13 @@ void Parser::definition()
     std::string nonterm = "definition";
     auto s = next_token->symbol;
     if (s == CONST) {
-        TRY(constant_definition);
+        constant_definition();
     }
     else if (s == INT || s == BOOL) {
-        TRY(variable_definition);
+        variable_definition();
     }
     else if (s == PROC) {
-        TRY(procedure_definition);
+        procedure_definition();
     }
     else {
         syntax_error(nonterm);
@@ -216,11 +208,11 @@ void Parser::definition()
 void Parser::constant_definition()
 {
     std::string nonterm = "constant_definition";
-    MATCH_AND_SYNC(CONST, nonterm);    
-    MATCH_AND_SYNC(IDENTIFIER, nonterm);
-    MATCH_AND_SYNC(EQUALS, nonterm);
+    match(CONST, nonterm);    
+    match(IDENTIFIER, nonterm);
+    match(EQUALS, nonterm);
     PLType type = PLType::UNDEFINED;
-    TRY_WITH_ARG(constant, type);
+    constant(type);
     if (!const_type(type)) {
         type_error("Non const value cannot be assigned a constant");
     }
@@ -234,9 +226,9 @@ void Parser::variable_definition()
 	std::string nonterm = "variable_definition";
     PLType type;
     // Type is first determined from type_symbol
-    TRY_WITH_ARG(type_symbol, type);
+    type_symbol(type);
     // type contains the type of the list of identifiers that follows
-    TRY_WITH_ARG(variable_definition_type, type);
+    variable_definition_type(type);
 }
 
 
@@ -247,18 +239,18 @@ void Parser::variable_definition_type(PLType varlist_type)
     int size = 1;
     auto s = next_token->symbol;
     if (s == IDENTIFIER) {
-        TRY_WITH_ARG(variable_list, vars);
+        variable_list(vars);
     }
     else if (s == ARRAY) { 
-        MATCH_AND_SYNC(ARRAY, nonterm);
-        TRY_WITH_ARG(variable_list, vars);
-        MATCH_AND_SYNC(LEFT_BRACKET, nonterm);
+        match(ARRAY, nonterm);
+        variable_list(vars);
+        match(LEFT_BRACKET, nonterm);
         PLType bound_type = PLType::UNDEFINED;
-        TRY_WITH_ARG(constant, bound_type);
+        constant(bound_type);
         if (bound_type != PLType::INT_CONST) {
             type_error("Array bounds must be of type const integer");
         }
-        MATCH_AND_SYNC(RIGHT_BRACKET, nonterm);
+        match(RIGHT_BRACKET, nonterm);
     }
     else {
         syntax_error(nonterm);
@@ -275,11 +267,11 @@ void Parser::type_symbol(PLType &type)
     auto s = next_token->symbol;
     if (s == INT) {
         type = PLType::INT_VAR;
-        MATCH_AND_SYNC(s, nonterm);
+        match(s, nonterm);
     }
     else if (s == BOOL) {
         type = PLType::BOOL_VAR;
-        MATCH_AND_SYNC(s, nonterm);
+        match(s, nonterm);
     }
     else {
         syntax_error(nonterm);
@@ -290,9 +282,9 @@ void Parser::type_symbol(PLType &type)
 void Parser::variable_list(std::vector<std::string> &var_list)
 {
     std::string nonterm = "variable_list";
-    MATCH_AND_SYNC(IDENTIFIER, nonterm);
+    match(IDENTIFIER, nonterm);
     var_list.push_back(matched_id.lexeme);
-    TRY_WITH_ARG(variable_list_end, var_list);
+    variable_list_end(var_list);
 }
 
 
@@ -301,14 +293,14 @@ void Parser::variable_list_end(std::vector<std::string> &var_list)
     std::string nonterm = "variable_list_end";
     auto s = next_token->symbol;
     if (s == COMMA) {
-        MATCH_AND_SYNC(s, nonterm);
-        MATCH_AND_SYNC(IDENTIFIER, nonterm);
+        match(s, nonterm);
+        match(IDENTIFIER, nonterm);
         var_list.push_back(matched_id.lexeme);
-        TRY_WITH_ARG(variable_list_end, var_list);
+        variable_list_end(var_list);
     }
     // epsilon production
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
+    else {
+        check_follow(nonterm);
     }
 }
 
@@ -316,8 +308,8 @@ void Parser::variable_list_end(std::vector<std::string> &var_list)
 void Parser::procedure_definition()
 {
     std::string nonterm = "procedure_definition";
-    MATCH_AND_SYNC(PROC, nonterm);    
-    MATCH_AND_SYNC(IDENTIFIER, nonterm);
+    match(PROC, nonterm);    
+    match(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
     define_var(id, PLType::PROCEDURE, 1, false);
     block_table.push_new();
@@ -332,15 +324,15 @@ void Parser::statement_part()
     std::set<Symbol> first{SKIP, READ, WRITE, IDENTIFIER, CALL, IF, DO};
     auto s = next_token->symbol;
     if (sfind(first, s)) {
-        TRY(statement);
-        MATCH_AND_SYNC(SEMICOLON, nonterm);        
+        statement();
+        match(SEMICOLON, nonterm);        
         
-        TRY(statement_part);
+        statement_part();
     }
     // epsilon production
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
-    }
+    else {
+		check_follow(nonterm);
+	}
 }
 
 
@@ -349,25 +341,25 @@ void Parser::statement()
     std::string nonterm = "statement";
     auto s = next_token->symbol;
     if (s == SKIP) {
-        TRY(empty_statement);
+        empty_statement();
     }
     else if (s == READ) {
-        TRY(read_statement);
+        read_statement();
     }
     else if (s == WRITE) {
-        TRY(write_statement);
+        write_statement();
     }
     else if (s == IDENTIFIER) {
-        TRY(assignment_statement);
+        assignment_statement();
     }
     else if (s == CALL) {
-        TRY(procedure_statement);
+        procedure_statement();
     }
     else if (s == IF) {
-        TRY(if_statement);
+        if_statement();
     }
     else if (s == DO) {
-        TRY(do_statement);
+        do_statement();
     }
     else {
         syntax_error(nonterm);
@@ -378,16 +370,16 @@ void Parser::statement()
 void Parser::empty_statement()
 {
     std::string nonterm = "empty_statement";
-    MATCH_AND_SYNC(SKIP, nonterm);
+    match(SKIP, nonterm);
 }
 
 
 void Parser::read_statement()
 {
     std::string nonterm = "read_statement";
-    MATCH_AND_SYNC(READ, nonterm);
+    match(READ, nonterm);
     std::vector<PLType> types;
-    TRY_WITH_ARG(variable_access_list, types);
+    variable_access_list(types);
     for (auto t: types) {
         if (const_type(t)) {
             type_error("Cannot read value for constant");
@@ -404,9 +396,9 @@ void Parser::variable_access_list(std::vector<PLType> &types)
 {
 	std::string nonterm = "variable_access_list";
     PLType var_type = PLType::UNDEFINED;
-    TRY_WITH_ARG(variable_access, var_type);
+    variable_access(var_type);
     types.push_back(var_type);
-    TRY_WITH_ARG(variable_access_list_end, types);
+    variable_access_list_end(types);
 }
 
 
@@ -417,25 +409,25 @@ void Parser::variable_access_list_end(std::vector<PLType> &types)
     std::set<Symbol> first{SEMICOLON, ASSIGN};
     auto s = next_token->symbol;
     if (s == COMMA) {
-        MATCH_AND_SYNC(COMMA, nonterm);
+        match(COMMA, nonterm);
         PLType var_type = PLType::UNDEFINED;
-        TRY_WITH_ARG(variable_access, var_type);
+        variable_access(var_type);
         types.push_back(var_type);
-        TRY_WITH_ARG(variable_access_list_end, types);
+        variable_access_list_end(types);
     }
     // epsilon production 
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
-    }
+    else {
+		check_follow(nonterm);
+	}
 }
 
 
 void Parser::write_statement()
 {
     std::string nonterm = "write_statement";
-    MATCH_AND_SYNC(WRITE, nonterm);
+    match(WRITE, nonterm);
     std::vector<PLType> types;
-    TRY_WITH_ARG(expression_list, types);
+    expression_list(types);
     for (auto t: types) {
         if (!int_type(t) && !bool_type(t)) {
             std::string ts = (t == PLType::PROCEDURE ? "procedure" : "undefined");
@@ -449,9 +441,9 @@ void Parser::expression_list(std::vector<PLType> &types)
 {
 	std::string nonterm = "expression_list";
     PLType expr_type = PLType::UNDEFINED; 
-    TRY_WITH_ARG(expression, expr_type);
+    expression(expr_type);
     types.push_back(expr_type);
-    TRY_WITH_ARG(expression_list_end, types);
+    expression_list_end(types);
 }
 
 
@@ -461,16 +453,16 @@ void Parser::expression_list_end(std::vector<PLType> &types)
     
     auto s = next_token->symbol;
     if (s == COMMA) {
-        MATCH_AND_SYNC(s, nonterm);
+        match(s, nonterm);
         PLType expr_type = PLType::UNDEFINED;
-        TRY_WITH_ARG(expression, expr_type);
+        expression(expr_type);
         types.push_back(expr_type);
-        TRY_WITH_ARG(expression_list_end, types);
+        expression_list_end(types);
     }
     // epsilon production 
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
-    }
+    else {
+		check_follow(nonterm);
+	}
 }
 
 
@@ -478,9 +470,9 @@ void Parser::assignment_statement()
 {
     std::string nonterm = "assignment_statement";
     std::vector<PLType> var_types, expr_types;
-    TRY_WITH_ARG(variable_access_list, var_types);
-    MATCH_AND_SYNC(ASSIGN, nonterm);
-    TRY_WITH_ARG(expression_list, expr_types);
+    variable_access_list(var_types);
+    match(ASSIGN, nonterm);
+    expression_list(expr_types);
 
     if (var_types.size() != expr_types.size()) {
         error_preamble();
@@ -503,8 +495,8 @@ void Parser::assignment_statement()
 void Parser::procedure_statement()
 {
     std::string nonterm = "procedure_statement";
-    MATCH_AND_SYNC(CALL, nonterm);
-    MATCH_AND_SYNC(IDENTIFIER, nonterm);
+    match(CALL, nonterm);
+    match(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
     auto type = get_type(id);
     if (type != PLType::PROCEDURE) {
@@ -516,26 +508,26 @@ void Parser::procedure_statement()
 void Parser::if_statement()
 {
 	std::string nonterm = "if_statement";
-    MATCH_AND_SYNC(IF, nonterm);
-    TRY(guarded_command_list);
-    MATCH_AND_SYNC(FI, nonterm);
+    match(IF, nonterm);
+    guarded_command_list();
+    match(FI, nonterm);
 }
 
 
 void Parser::do_statement()
 {
 	std::string nonterm = "do_statement";
-    MATCH_AND_SYNC(DO, nonterm);
-    TRY(guarded_command_list);
-    MATCH_AND_SYNC(OD, nonterm);
+    match(DO, nonterm);
+    guarded_command_list();
+    match(OD, nonterm);
 }
 
 
 void Parser::guarded_command_list()
 {
 	std::string nonterm = "guarded_command_list";
-    TRY(guarded_command);
-    TRY(guarded_command_list_end);
+    guarded_command();
+    guarded_command_list_end();
 }
 
 
@@ -544,15 +536,15 @@ void Parser::guarded_command_list_end()
     std::string nonterm = "guarded_command_list_end";
     auto s = next_token->symbol;
     if (s == DOUBLE_BRACKET) {
-        MATCH_AND_SYNC(s, nonterm);
-        TRY(guarded_command);
+        match(s, nonterm);
+        guarded_command();
         
-        TRY(guarded_command_list_end);
+        guarded_command_list_end();
     }
     // epsilon production 
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
-    }
+    else {
+		check_follow(nonterm);
+	}
 }
 
 
@@ -561,20 +553,20 @@ void Parser::guarded_command()
     std::string nonterm = "guarded_command";
     
     auto guard_type = PLType::UNDEFINED;
-    TRY_WITH_ARG(expression, guard_type);
+    expression(guard_type);
     if (!bool_type(guard_type)) {
         type_error("Guarded command must evaluate to Boolean type");
     }
-    MATCH_AND_SYNC(RIGHT_ARROW, nonterm);
-    TRY(statement_part);
+    match(RIGHT_ARROW, nonterm);
+    statement_part();
 }
 
 
 void Parser::expression(PLType &type)
 {
     std::string nonterm = "expression";
-    TRY_WITH_ARG(primary_expression, type);
-    TRY_WITH_ARG(expression_end, type);
+    primary_expression(type);
+    expression_end(type);
 }
 
 
@@ -584,10 +576,10 @@ void Parser::expression_end(PLType &lhs_type)
     
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
-        TRY(primary_operator);
+        primary_operator();
         auto rhs_type = PLType::UNDEFINED;
-        TRY_WITH_ARG(primary_expression, rhs_type);
-        TRY_WITH_ARG(expression_end, rhs_type);
+        primary_expression(rhs_type);
+        expression_end(rhs_type);
         if (!bool_type(lhs_type) || !bool_type(rhs_type)) {
             type_error("Both sides of logical operation must be Boolean");
             lhs_type = PLType::UNDEFINED;
@@ -597,19 +589,18 @@ void Parser::expression_end(PLType &lhs_type)
         }
     }
     // epsilon production 
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
-    }
+    else {
+		check_follow(nonterm);
+	}
 }
 
 
 void Parser::primary_operator()
 {
     std::string nonterm = "primary_operator";
-    
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
-        match(s);
+        match(s, nonterm);
     }
     else {
         syntax_error(nonterm);
@@ -620,8 +611,8 @@ void Parser::primary_operator()
 void Parser::primary_expression(PLType &type)
 {
 	std::string nonterm = "primary_expression";
-    TRY_WITH_ARG(simple_expression, type);
-    TRY_WITH_ARG(primary_expression_end, type);
+    simple_expression(type);
+    primary_expression_end(type);
 }
 
 
@@ -630,9 +621,9 @@ void Parser::primary_expression_end(PLType &lhs_type)
     std::string nonterm = "primary_expression_end"; 
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == GREATER_THAN || s == EQUALS) {
-        TRY(relational_operator);
+        relational_operator();
         auto rhs_type = PLType::UNDEFINED;
-        TRY_WITH_ARG(simple_expression, rhs_type);
+        simple_expression(rhs_type);
         if (!int_type(lhs_type) || !int_type(rhs_type)) {
             type_error("Both operands of a comparison must be integers");
             lhs_type = PLType::UNDEFINED;
@@ -642,9 +633,9 @@ void Parser::primary_expression_end(PLType &lhs_type)
         }
     }
     // epsilon production 
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
-    }
+    else {
+		check_follow(nonterm);
+	}
 }
 
 
@@ -653,7 +644,7 @@ void Parser::relational_operator()
     std::string nonterm = "relational_operator";
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == EQUALS || s == GREATER_THAN) {
-        match(s);
+        match(s, nonterm);
     }
     else {
         syntax_error(nonterm);
@@ -667,17 +658,17 @@ void Parser::simple_expression(PLType &type)
     std::set<Symbol> first{NOT, LEFT_PARENTHESIS, NUMERAL, TRUE_KEYWORD, FALSE_KEYWORD, IDENTIFIER};
     auto s = next_token->symbol;
     if (s == SUBTRACT) {
-        match(s);
-        TRY_WITH_ARG(term, type);
+        match(s, nonterm);
+        term(type);
         if (!int_type(type)) {
             type_error("Cannot negate a non integer value");
             type = PLType::UNDEFINED;
         }
-        TRY_WITH_ARG(simple_expression_end, type);
+        simple_expression_end(type);
     }
     else if (sfind(first, s)) {
-        TRY_WITH_ARG(term, type);
-        TRY_WITH_ARG(simple_expression_end, type);
+        term(type);
+        simple_expression_end(type);
     }
     else {
         syntax_error(nonterm);
@@ -690,9 +681,9 @@ void Parser::simple_expression_end(PLType &lhs_type)
     std::string nonterm = "simple_expression_end";
     auto s = next_token->symbol;
     if (s == ADD || s == SUBTRACT) {
-        TRY(adding_operator);
+        adding_operator();
         auto rhs_type = PLType::UNDEFINED;
-        TRY_WITH_ARG(term, rhs_type);
+        term(rhs_type);
         if (int_type(lhs_type) && int_type(rhs_type)) {
             lhs_type = PLType::INT_CONST;
         }
@@ -701,11 +692,11 @@ void Parser::simple_expression_end(PLType &lhs_type)
             lhs_type = PLType::UNDEFINED;
         }
         
-        TRY_WITH_ARG(simple_expression_end, lhs_type);
+        simple_expression_end(lhs_type);
     }
     // epsilon production 
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
+    else {
+        check_follow(nonterm); 
     }
 }
 
@@ -715,7 +706,7 @@ void Parser::adding_operator()
     std::string nonterm = "adding_operator";
     auto s = next_token->symbol;
     if (s == ADD || s == SUBTRACT) {
-        match(s);
+        match(s, nonterm);
     }
     else {
         syntax_error(nonterm);
@@ -726,8 +717,8 @@ void Parser::adding_operator()
 void Parser::term(PLType &type)
 {
     std::string nonterm = "term";
-    TRY_WITH_ARG(factor, type);
-    TRY_WITH_ARG(term_end, type);
+    factor(type);
+    term_end(type);
 }
 
 
@@ -736,9 +727,9 @@ void Parser::term_end(PLType &lhs_type)
     std::string nonterm = "term_end";
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s == MODULO) {
-        TRY(multiplying_operator);
+        multiplying_operator();
         auto rhs_type = PLType::UNDEFINED;
-        TRY_WITH_ARG(factor, rhs_type);
+        factor(rhs_type);
         if (int_type(lhs_type) && int_type(rhs_type)) {
             lhs_type = PLType::INT_CONST;
         }
@@ -747,11 +738,11 @@ void Parser::term_end(PLType &lhs_type)
             lhs_type = PLType::UNDEFINED;
         }
         
-        TRY_WITH_ARG(term_end, lhs_type);
+        term_end(lhs_type);
     }
     // epsilon production 
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
+    else {
+        check_follow(nonterm);  
     }
 }
 
@@ -761,7 +752,7 @@ void Parser::multiplying_operator()
     std::string nonterm = "multiplying_operator";
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s ==  MODULO) {
-        match(s);
+        match(s, nonterm);
     }
     else {
         syntax_error(nonterm);
@@ -774,19 +765,19 @@ void Parser::factor(PLType &type)
     std::string nonterm = "factor";
     auto s = next_token->symbol;
     if (s == LEFT_PARENTHESIS) {
-        match(s);
-        TRY_WITH_ARG(expression, type);
-        MATCH_AND_SYNC(RIGHT_PARENTHESIS, nonterm);
+        match(s, nonterm);
+        expression(type);
+        match(RIGHT_PARENTHESIS, nonterm);
     }
     else if (s == IDENTIFIER) {
-        TRY_WITH_ARG(variable_access, type);
+        variable_access(type);
     }
     else if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD) {
-        TRY_WITH_ARG(constant, type);
+        constant(type);
     }
     else if (s == NOT) {
-        match(s);
-        TRY_WITH_ARG(factor, type);
+        match(s, nonterm);
+        factor(type);
         if (!bool_type(type)) {
             type_error("Cannot take logical inverse of a non Boolean expression");
             type = PLType::UNDEFINED;
@@ -804,10 +795,10 @@ void Parser::factor(PLType &type)
 void Parser::variable_access(PLType &type)
 {
     std::string nonterm = "variable_access";
-    MATCH_AND_SYNC(IDENTIFIER, nonterm);
+    match(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
     type = get_type(id);
-    TRY(variable_access_end);
+    variable_access_end();
 }
 
 
@@ -816,11 +807,11 @@ void Parser::variable_access_end()
     std::string nonterm = "variable_access_end";
     auto s = next_token->symbol;
     if (s == LEFT_BRACKET) {
-        TRY(indexed_selector);
+        indexed_selector();
     }
     // epsilon production 
-    else if (!check_follow(nonterm)) {
-        syntax_error(nonterm);
+    else {
+        check_follow(nonterm);
     }
 }
 
@@ -828,14 +819,14 @@ void Parser::variable_access_end()
 void Parser::indexed_selector()
 {
     std::string nonterm = "indexed_selector";
-    MATCH_AND_SYNC(LEFT_BRACKET, nonterm);
+    match(LEFT_BRACKET, nonterm);
     auto index_type = PLType::UNDEFINED;
-    TRY_WITH_ARG(expression, index_type);
+    expression(index_type);
     if (!int_type(index_type)) {
         error_preamble();
         std::cout << "Array index must be integer type" << std::endl;
     }
-    match(RIGHT_BRACKET);
+    match(RIGHT_BRACKET, nonterm);
 }
 
 
@@ -845,17 +836,17 @@ void Parser::constant(PLType &type)
     auto s = next_token->symbol;
     if (s == NUMERAL) {
         type = PLType::INT_CONST;
-        match(s);
+        match(s, nonterm);
     }
     else if (s == TRUE_KEYWORD || s == FALSE_KEYWORD) {
         type = PLType::BOOL_CONST;
-        match(s);
+        match(s, nonterm);
     }
     else if (s == IDENTIFIER) {
 
         auto id = next_token->lexeme;
         type = get_type(id);
-        match(s);
+        match(s, nonterm);
     }
     else {
         syntax_error(nonterm);
