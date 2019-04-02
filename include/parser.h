@@ -8,17 +8,13 @@
 #include <map>
 #include <set>
 #include <stack>
+#include <stdexcept>
 
-
-
-/*  A block table Entry stores:
-    - the type of the variable, defined above
-    - the size of the variable (greater than 1 only for arrays)
-*/
-// typedef std::pair<PLType, int> BlockData;
-
-// A block is a set of names of identifiers, and the associated data
-// typedef std::map<std::string, BlockData> Block;
+class eof_error: public std::runtime_error
+{
+public:
+    eof_error(): std::runtime_error("Reached end of file while parsing") {}
+};
 
 
 // Recursive descent parser which perform syntax, type and scope checking
@@ -51,8 +47,8 @@ private:
     int num_errors;
     int line;
 
-    // Move to next character in input. Return false if EOF read
-    bool read_next();
+    // Move to next character in input. Throw eof_error if EOF reached
+    void read_next();
 
     // Skip newline and comment tokens
     void skip_whitespace();
@@ -68,14 +64,14 @@ private:
     PLType get_type(std::string id);
 
     // Types of error messages
-    bool syntax_error(std::string non_terminal);
+    void syntax_error(std::string non_terminal);
     void type_error(std::string err_mgs);
 
     // lookup next token in follow set of non-terminal  
     bool check_follow(std::string non_terminal);
 
     // When in an error state, skip input tokens until one is found from which parsing can continue
-    bool synchronize(std::string non_terminal); 
+    void synchronize(std::string non_terminal); 
 
     // Used to print the function call stack 
     void print(std::string msg);
@@ -87,50 +83,50 @@ private:
 
         Reference parameters in functions are used to return additional values
     */
-    bool program();
-    bool block();
-    bool definition_part();
-    bool definition();
-    bool constant_definition();
-    bool variable_definition();
-    bool variable_definition_type(PLType varlist_type);
-    bool type_symbol(PLType &type);
-    bool variable_list(std::vector<std::string> &var_list);
-    bool variable_list_end(std::vector<std::string> &var_list);
-    bool procedure_definition();
-    bool statement_part();
-    bool statement();
-    bool empty_statement();
-    bool read_statement();
-    bool variable_access_list(std::vector<PLType> &types);
-    bool variable_access_list_end(std::vector<PLType> &types);
-    bool write_statement();
-    bool expression_list(std::vector<PLType> &types);
-    bool expression_list_end(std::vector<PLType> &types);
-    bool assignment_statement();
-    bool procedure_statement();
-    bool if_statement();
-    bool do_statement();
-    bool guarded_command_list();
-    bool guarded_command_list_end();
-    bool guarded_command();
-    bool expression(PLType &type);
-    bool expression_end(PLType &lhs_type);
-    bool primary_operator();
-    bool primary_expression(PLType &type);
-    bool primary_expression_end(PLType &lhs_type);
-    bool relational_operator();
-    bool simple_expression(PLType &type);
-    bool simple_expression_end(PLType &lsh_type);
-    bool adding_operator();
-    bool term(PLType &type);
-    bool term_end(PLType &lhs_type);
-    bool multiplying_operator();
-    bool factor(PLType &type);
-    bool variable_access(PLType &type);
-    bool variable_access_end();
-    bool indexed_selector();
-    bool constant(PLType &type);
+    void program();
+    void block();
+    void definition_part();
+    void definition();
+    void constant_definition();
+    void variable_definition();
+    void variable_definition_type(PLType varlist_type);
+    void type_symbol(PLType &type);
+    void variable_list(std::vector<std::string> &var_list);
+    void variable_list_end(std::vector<std::string> &var_list);
+    void procedure_definition();
+    void statement_part();
+    void statement();
+    void empty_statement();
+    void read_statement();
+    void variable_access_list(std::vector<PLType> &types);
+    void variable_access_list_end(std::vector<PLType> &types);
+    void write_statement();
+    void expression_list(std::vector<PLType> &types);
+    void expression_list_end(std::vector<PLType> &types);
+    void assignment_statement();
+    void procedure_statement();
+    void if_statement();
+    void do_statement();
+    void guarded_command_list();
+    void guarded_command_list_end();
+    void guarded_command();
+    void expression(PLType &type);
+    void expression_end(PLType &lhs_type);
+    void primary_operator();
+    void primary_expression(PLType &type);
+    void primary_expression_end(PLType &lhs_type);
+    void relational_operator();
+    void simple_expression(PLType &type);
+    void simple_expression_end(PLType &lsh_type);
+    void adding_operator();
+    void term(PLType &type);
+    void term_end(PLType &lhs_type);
+    void multiplying_operator();
+    void factor(PLType &type);
+    void variable_access(PLType &type);
+    void variable_access_end();
+    void indexed_selector();
+    void constant(PLType &type);
 
     // Initialize first and follow sets
     void init_symbol_sets();    

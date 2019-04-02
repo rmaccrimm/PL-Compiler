@@ -1,4 +1,4 @@
-$ Redefine variables in nested functions and re-use func name - 3 errors
+$ Redefine variables in nested functions and re-use func name - 2 errors
 begin
     proc f
     begin
@@ -15,7 +15,7 @@ begin
             begin 
                 integer g;
                 call f;
-                call g; $ 2 errors - type error and scope error
+                call g; $ 1 error
                 call h; 
             end;
 

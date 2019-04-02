@@ -3,7 +3,7 @@ $ expect 5 errors
 begin
     integer array A, C, D, E[n]; $ double error, not defined, not type const int (undefined type)
     const f = false;
-    integer array QW[f];
+    integer array QW[f]; 
     proc B begin end;
     Boolean x;
     integer array q[B]; 
