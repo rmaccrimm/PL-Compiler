@@ -3,6 +3,9 @@
 #include <cassert>
 #include <set>
 
+using std::cerr;
+using std::endl;
+
 // Change to 1 for debugging purposes
 #define PRINT 0
 #define INDENT 1
@@ -107,11 +110,33 @@ bool Parser::check_follow(std::string non_terminal)
     return sfind(follow[non_terminal], next_token->symbol);
 }
 
-
 void Parser::error_preamble()
 {
     num_errors++;
-    std::cout << "Error " << num_errors << " on line " << line << ": ";
+    cerr << "Error " << num_errors << " on line " << line << ": ";
+}
+
+void Parser::define_var(std::string id, PLType type, int size, bool constant) {
+    try {
+        block_table.insert(id, type, size, constant);
+    }
+    catch (const scope_error &e) {
+        error_preamble();
+        cerr << e.what() << endl;
+    }
+}
+
+PLType Parser::get_type(std::string id) 
+{
+    try {
+        auto t = block_table.find_type(id);
+        return t;
+    }
+    catch (const scope_error &e) {
+        error_preamble();
+        cerr << e.what() << endl;
+        return PLType::UNDEFINED;
+    }
 }
 
 
@@ -123,18 +148,6 @@ bool Parser::syntax_error(std::string non_terminal)
     return synchronize(non_terminal);
 }
 
-
-void Parser::scope_error(std::string id, bool defined)
-{
-    error_preamble();
-    std::cout << "SCOPE ERROR - ";
-    if (defined) {
-        std::cout << "Identifier " << id << " already defined" << std::endl;
-    }
-    else {
-        std::cout << "Identifier " << id << " used before defined" << std::endl;
-    }
-}
 
 void Parser::type_error(std::string msg)
 {
@@ -162,9 +175,8 @@ bool Parser::program()
 {
     std::string nonterm = "program";
     print(nonterm);
-
     depth++;
-    block_table.push(Block());
+    block_table.push_new();
     TRY(block);
     depth--;
     block_table.pop();
@@ -240,13 +252,6 @@ bool Parser::definition()
 }
 
 
-bool Parser::in_scope(std::string id) 
-{
-    Block& current_block = block_table.top();
-    return current_block.find(id) != current_block.end();
-}
-
-
 bool Parser::constant_definition()
 {
     std::string nonterm = "constant_definition";
@@ -265,12 +270,7 @@ bool Parser::constant_definition()
         type_error("Non const value cannot be assigned a constant");
     }
     auto id = matched_id.lexeme;
-    if (!in_scope(id)) {
-        block_table.top()[id] = {type, 1};
-    }
-    else {
-        scope_error(id);
-    }
+    define_var(id, type, 1, true);
     return true;
 }
 
@@ -319,12 +319,7 @@ bool Parser::variable_definition_type(PLType varlist_type)
     }
 	depth--;
     for (auto &id: vars) {
-        if (!in_scope(id)) {
-            block_table.top()[id] = {varlist_type, size};
-        }
-        else {
-            scope_error(id);
-        }
+        define_var(id, varlist_type, size, false);
     }
     return true;
 }
@@ -393,20 +388,10 @@ bool Parser::procedure_definition()
 	depth++;
     MATCH_AND_SYNC(PROC, nonterm);    
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
-
     auto id = matched_id.lexeme;
-    if (!in_scope(id)) {
-        block_table.top()[id] = {PLType::PROCEDURE, 1};
-    }
-    else {
-        scope_error(id);
-    }
-    /*  Push a new block onto the stack that is initially identical to the previous block. This 
-        allows the procedure to access variables in the outer scope, but does not allow later 
-        statements to use variables defined in the procedure 
-    */
-    Block proc_block = block_table.top();
-    block_table.push(proc_block);
+
+    define_var(id, PLType::PROCEDURE, 1, false);
+    block_table.push_new();
     bool success = block();
     block_table.pop();
 	depth--;
@@ -635,11 +620,8 @@ bool Parser::procedure_statement()
     MATCH_AND_SYNC(CALL, nonterm);
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
-    if (!in_scope(id)) {
-        scope_error(id, false);
-    }
-    // first element of a Block tuple is the type - plan to replace with more obvious struct
-    auto type = std::get<0>(block_table.top()[id]);
+
+    auto type = get_type(id);
     if (type != PLType::PROCEDURE) {
         type_error("Cannot call a non procedure type");
     }
@@ -1010,13 +992,14 @@ bool Parser::variable_access(PLType &type)
 	depth++;
     MATCH_AND_SYNC(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
-    if (!in_scope(id)) {
-        scope_error(id, false);
-    }
-    else {
-        // first element of a Block tuple is the type - plan to replace with more obvious struct
-        type = std::get<0>(block_table.top()[id]);
-    }
+    type = get_type(id);
+    // if (!in_scope(id)) {
+    //     scope_error(id, false);
+    // }
+    // else {
+    //     // first element of a Block tuple is the type - plan to replace with more obvious struct
+    //     type = std::get<0>(block_table.top()[id]);
+    // }
     TRY(variable_access_end);
 	depth--;
     return true;
@@ -1073,14 +1056,16 @@ bool Parser::constant(PLType &type)
         match(s);
     }
     else if (s == IDENTIFIER) {
+
         auto id = next_token->lexeme;
-        if (!in_scope(id)) {
-            scope_error(id, false);
-        }
-        else {
-            // first element of a Block tuple is the type - plan to replace with more obvious struct
-            type = std::get<0>(block_table.top()[id]);
-        }
+        type = get_type(id);
+        // if (!in_scope(id)) {
+        //     scope_error(id, false);
+        // }
+        // else {
+        //     // first element of a Block tuple is the type - plan to replace with more obvious struct
+        //     type = std::get<0>(block_table.top()[id]);
+        // }
         match(s);
     }
     else {

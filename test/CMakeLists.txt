@@ -5,6 +5,7 @@ add_library(compiler
     ../src/symbol_table.cpp
     ../src/scanner.cpp
     ../src/parser.cpp
+    ../src/block_table.cpp
 )
 
 add_executable(run_tests

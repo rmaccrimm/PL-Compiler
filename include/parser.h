@@ -2,31 +2,23 @@
 #define PARSER_H
 
 #include "token.h"
+#include "block_table.h"
 #include <vector>
 #include <string>
 #include <map>
 #include <set>
 #include <stack>
 
-// All of the valid types of identifiers
-enum class PLType 
-{
-    INT_VAR,
-    INT_CONST,
-    BOOL_VAR,
-    BOOL_CONST,
-    PROCEDURE,
-    UNDEFINED
-};
+
 
 /*  A block table Entry stores:
     - the type of the variable, defined above
     - the size of the variable (greater than 1 only for arrays)
 */
-typedef std::pair<PLType, int> BlockData;
+// typedef std::pair<PLType, int> BlockData;
 
 // A block is a set of names of identifiers, and the associated data
-typedef std::map<std::string, BlockData> Block;
+// typedef std::map<std::string, BlockData> Block;
 
 
 // Recursive descent parser which perform syntax, type and scope checking
@@ -49,7 +41,7 @@ private:
     std::vector<Token>::iterator next_token;
 
     // The Block Table, for scope and type checking
-    std::stack<Block> block_table;
+    BlockTable block_table;
 
     // Always save the last identifier token matched
     Token matched_id;
@@ -71,16 +63,16 @@ private:
     // Print error number and line on which error occurred
     void error_preamble();
 
+    // Catch potential scope_errors 
+    void define_var(std::string id, PLType type, int size, bool constant);
+    PLType get_type(std::string id);
+
     // Types of error messages
     bool syntax_error(std::string non_terminal);
-    void scope_error(std::string identifier, bool define=true);
     void type_error(std::string err_mgs);
 
     // lookup next token in follow set of non-terminal  
     bool check_follow(std::string non_terminal);
-
-    // Check if identifier has already been defined in current scope
-    bool in_scope(std::string id);
 
     // When in an error state, skip input tokens until one is found from which parsing can continue
     bool synchronize(std::string non_terminal); 
