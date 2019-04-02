@@ -1,4 +1,4 @@
-$ Define variables that exist in outer scope - expect 3 errors
+$ Define variables that exist in outer scope - no errors
 begin
     integer array A, C, D, E[12];
     const n = 10; 

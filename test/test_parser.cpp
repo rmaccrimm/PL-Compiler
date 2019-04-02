@@ -60,7 +60,12 @@ TEST_CASE("Procedure redefinitions", "[proc-defs]")
 
 TEST_CASE("Procedure scope", "[proc-scope]")
 { 
-    run_test("test/src_files/scope/redefined_in_func", 3);
+    run_test("test/src_files/scope/redefined_in_func", 0);
+}
+
+TEST_CASE("Nested procedures", "[nested_proc]")
+{
+    run_test("test/src_files/scope/nested_funcs", 3);
 }
 
 TEST_CASE("Array bounds type", "[array-bounds]")

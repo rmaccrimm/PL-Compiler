@@ -1,0 +1,21 @@
+$ Redefine variables in nested functions and re-use func name - 3 errors
+begin
+    integer x, y, z; Boolean a, b, c;
+    proc f
+    begin
+        integer x, y, z; Boolean f; $ 1 error
+        proc g
+        begin 
+            proc f $ 1 error 
+            begin 
+                integer array y[10];
+            end;
+
+            proc h
+            begin
+                Boolean a, b, c;
+                proc f begin end; $ 1 error
+            end;
+        end;
+    end;
+end.
