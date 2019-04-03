@@ -10,9 +10,9 @@ using std::endl;
 bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
 
 // Groups of types
-bool const_type(PLType t) { return t == PLType::BOOL_CONST || t == PLType::INT_CONST; }
-bool bool_type(PLType t) { return t == PLType::BOOL_CONST || t == PLType::BOOL_VAR; }
-bool int_type(PLType t) { return t == PLType::INT_CONST || t == PLType::INT_VAR; }
+// bool const_type(PLType t) { return t == PLType::BOOL_CONST || t == PLType::INT_CONST; }
+// bool bool_type(PLType t) { return t == PLType::BOOL_CONST || t == PLType::BOOL_VAR; }
+// bool int_type(PLType t) { return t == PLType::INT_CONST || t == PLType::INT_VAR; }
 
 
 Parser::Parser(): line{1}, depth{0}, num_errors{0}
@@ -130,8 +130,8 @@ void Parser::define_var(std::string id, PLType type, int size, bool constant) {
 PLType Parser::get_type(std::string id) 
 {
     try {
-        auto t = block_table.find_type(id);
-        return t;
+        BlockData &t = block_table.find(id);
+        return t.type;
     }
     catch (const scope_error &e) {
         error_preamble();
@@ -210,13 +210,9 @@ void Parser::constant_definition()
     std::string nonterm = "constant_definition";
     match(CONST, nonterm);    
     match(IDENTIFIER, nonterm);
-    match(EQUALS, nonterm);
-    PLType type = PLType::UNDEFINED;
-    constant(type);
-    if (!const_type(type)) {
-        type_error("Non const value cannot be assigned a constant");
-    }
     auto id = matched_id.lexeme;
+    match(EQUALS, nonterm);
+    auto type = constant();
     define_var(id, type, 1, true);
 }
 
@@ -224,10 +220,7 @@ void Parser::constant_definition()
 void Parser::variable_definition()
 {
 	std::string nonterm = "variable_definition";
-    PLType type;
-    // Type is first determined from type_symbol
-    type_symbol(type);
-    // type contains the type of the list of identifiers that follows
+    auto type = type_symbol();
     variable_definition_type(type);
 }
 
@@ -242,13 +235,18 @@ void Parser::variable_definition_type(PLType varlist_type)
         variable_list(vars);
     }
     else if (s == ARRAY) { 
+        // if (equals(varlist_type, PLType::INTEGER)) {
+            // varlist_type = PLType::INTEGER_ARRAY;
+        // }
+        // else if (equals(varlist_type, PLType::BOOLEAN)) {
+            // varlist_type = PLType::BOOLEAN_ARRAY;
+        // }
         match(ARRAY, nonterm);
         variable_list(vars);
         match(LEFT_BRACKET, nonterm);
-        PLType bound_type = PLType::UNDEFINED;
-        constant(bound_type);
-        if (bound_type != PLType::INT_CONST) {
-            type_error("Array bounds must be of type const integer");
+        auto arr_size_type = constant();
+        if (!equals(arr_size_type, PLType::INTEGER)) {
+            type_error("Array bounds must be of type integer");
         }
         match(RIGHT_BRACKET, nonterm);
     }
@@ -261,20 +259,21 @@ void Parser::variable_definition_type(PLType varlist_type)
 }
 
 
-void Parser::type_symbol(PLType &type)
+PLType Parser::type_symbol()
 {
     std::string nonterm = "type_symbol";
     auto s = next_token->symbol;
     if (s == INT) {
-        type = PLType::INT_VAR;
         match(s, nonterm);
+        return PLType::INTEGER;
     }
     else if (s == BOOL) {
-        type = PLType::BOOL_VAR;
         match(s, nonterm);
+        return PLType::BOOLEAN;
     }
     else {
         syntax_error(nonterm);
+        return PLType::UNDEFINED;
     }
 }
 
@@ -378,42 +377,45 @@ void Parser::read_statement()
 {
     std::string nonterm = "read_statement";
     match(READ, nonterm);
-    std::vector<PLType> types;
-    variable_access_list(types);
-    for (auto t: types) {
-        if (const_type(t)) {
-            type_error("Cannot read value for constant");
+    std::vector<std::string> vars;
+    variable_access_list(vars);
+    for (auto id: vars) {
+        try {
+            BlockData &data = block_table.find(id);
+            if (data.constant) {
+                type_error("Cannot read value for constant " + id);
+            }
+            else if (equals(data.type, PLType::PROCEDURE)) {
+                type_error("Cannot read value for procedure " + id);
+            }
         }
-        if (t == PLType::PROCEDURE || t == PLType::UNDEFINED) {
-            std::string ts = (t == PLType::PROCEDURE ? "procedure" : "undefined");
-            type_error("Cannot read variable of type " + ts);
+        catch (const scope_error &e) {
+            error_preamble();
+            cerr << e.what() << endl;
         }
     }
 }
 
 
-void Parser::variable_access_list(std::vector<PLType> &types)
+void Parser::variable_access_list(std::vector<std::string> &vars)
 {
 	std::string nonterm = "variable_access_list";
-    PLType var_type = PLType::UNDEFINED;
-    variable_access(var_type);
-    types.push_back(var_type);
-    variable_access_list_end(types);
+    auto var_id = variable_access();
+    vars.push_back(var_id);
+    variable_access_list_end(vars);
 }
 
 
-void Parser::variable_access_list_end(std::vector<PLType> &types)
+void Parser::variable_access_list_end(std::vector<std::string> &vars)
 {
     std::string nonterm = "variable_access_list_end";
-    
     std::set<Symbol> first{SEMICOLON, ASSIGN};
     auto s = next_token->symbol;
     if (s == COMMA) {
         match(COMMA, nonterm);
-        PLType var_type = PLType::UNDEFINED;
-        variable_access(var_type);
-        types.push_back(var_type);
-        variable_access_list_end(types);
+        auto id = variable_access();
+        vars.push_back(id);
+        variable_access_list_end(vars);
     }
     // epsilon production 
     else {
@@ -429,9 +431,8 @@ void Parser::write_statement()
     std::vector<PLType> types;
     expression_list(types);
     for (auto t: types) {
-        if (!int_type(t) && !bool_type(t)) {
-            std::string ts = (t == PLType::PROCEDURE ? "procedure" : "undefined");
-            type_error("Cannot write variable of type " + ts);
+        if (!equals(t, PLType::PROCEDURE)) {
+            type_error("Cannot write procedure");
         }
     }
 }
@@ -440,8 +441,7 @@ void Parser::write_statement()
 void Parser::expression_list(std::vector<PLType> &types)
 {
 	std::string nonterm = "expression_list";
-    PLType expr_type = PLType::UNDEFINED; 
-    expression(expr_type);
+    auto expr_type = expression();
     types.push_back(expr_type);
     expression_list_end(types);
 }
@@ -450,14 +450,10 @@ void Parser::expression_list(std::vector<PLType> &types)
 void Parser::expression_list_end(std::vector<PLType> &types)
 {
     std::string nonterm = "expression_list_end";
-    
     auto s = next_token->symbol;
     if (s == COMMA) {
         match(s, nonterm);
-        PLType expr_type = PLType::UNDEFINED;
-        expression(expr_type);
-        types.push_back(expr_type);
-        expression_list_end(types);
+        expression_list(types);
     }
     // epsilon production 
     else {
@@ -469,24 +465,32 @@ void Parser::expression_list_end(std::vector<PLType> &types)
 void Parser::assignment_statement()
 {
     std::string nonterm = "assignment_statement";
-    std::vector<PLType> var_types, expr_types;
-    variable_access_list(var_types);
+    std::vector<std::string> vars;
+    std::vector<PLType> expr_types;
+    variable_access_list(vars);
     match(ASSIGN, nonterm);
     expression_list(expr_types);
 
-    if (var_types.size() != expr_types.size()) {
+    if (vars.size() != expr_types.size()) {
         error_preamble();
         std::cout << "Number of variables does not match number of expressions" << std::endl;
     }
     else {
-        for (int i = 0; i < var_types.size(); i++) {
-            auto v = var_types[i];
-            auto e = expr_types[i];
-            if (const_type(v)) {
-                type_error("Cannot assign a value to const type");
+        for (int i = 0; i < vars.size(); i++) {
+            auto id = vars[i];
+            auto e_type = expr_types[i];
+            try {
+                BlockData &data = block_table.find(id);
+                if (data.constant) {
+                    type_error("Cannot assign value to constant " + id);
+                }
+                else if (!equals(data.type, e_type)) {
+                    type_error("Mismatch between types of LHS and RHS of assignment statement");
+                }
             }
-            else if (!((int_type(v) && int_type(e)) || (bool_type(v) && bool_type(e)))) {
-                type_error("Mismatch between types of LHS and RHS of assignment statement");
+            catch (const scope_error &e) {
+                error_preamble();
+                cerr << e.what() << endl;
             }
         }
     }
@@ -552,9 +556,8 @@ void Parser::guarded_command()
 {
     std::string nonterm = "guarded_command";
     
-    auto guard_type = PLType::UNDEFINED;
-    expression(guard_type);
-    if (!bool_type(guard_type)) {
+    auto guard_type = expression();
+    if (!equals(guard_type, PLType::BOOLEAN)) {
         type_error("Guarded command must evaluate to Boolean type");
     }
     match(RIGHT_ARROW, nonterm);
@@ -562,30 +565,24 @@ void Parser::guarded_command()
 }
 
 
-void Parser::expression(PLType &type)
+PLType Parser::expression()
 {
     std::string nonterm = "expression";
-    primary_expression(type);
-    expression_end(type);
+    auto lhs = primary_expression();
+    expression_end(lhs);
+    return lhs;
 }
 
 
-void Parser::expression_end(PLType &lhs_type)
+void Parser::expression_end(PLType lhs)
 {
     std::string nonterm = "expression_end";
-    
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
         primary_operator();
-        auto rhs_type = PLType::UNDEFINED;
-        primary_expression(rhs_type);
-        expression_end(rhs_type);
-        if (!bool_type(lhs_type) || !bool_type(rhs_type)) {
-            type_error("Both sides of logical operation must be Boolean");
-            lhs_type = PLType::UNDEFINED;
-        }
-        else {
-            lhs_type = PLType::BOOL_CONST;
+        auto rhs = expression();
+        if (!(equals(lhs, PLType::BOOLEAN) && equals(rhs, PLType::BOOLEAN))) {
+            type_error("Both operands for logical operator must be Boolean");
         }
     }
     // epsilon production 
@@ -608,29 +605,34 @@ void Parser::primary_operator()
 }
 
 
-void Parser::primary_expression(PLType &type)
+PLType Parser::primary_expression()
 {
 	std::string nonterm = "primary_expression";
-    simple_expression(type);
-    primary_expression_end(type);
+    auto lhs = simple_expression();
+    primary_expression_end();
+    return lhs;
 }
 
 
-void Parser::primary_expression_end(PLType &lhs_type)
+void Parser::primary_expression_end(PLType lhs)
 {
     std::string nonterm = "primary_expression_end"; 
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == GREATER_THAN || s == EQUALS) {
         relational_operator();
-        auto rhs_type = PLType::UNDEFINED;
-        simple_expression(rhs_type);
-        if (!int_type(lhs_type) || !int_type(rhs_type)) {
+        auto rhs = primary_expression();
+        if (!(equals(lhs, PLType::INTEGER) && equals(PLType::INTEGER, rhs))) {
             type_error("Both operands of a comparison must be integers");
-            lhs_type = PLType::UNDEFINED;
         }
-        else {
-            lhs_type = PLType::BOOL_CONST;
-        }
+        // auto rhs_type = PLType::UNDEFINED;
+        // simple_expression(rhs_type);
+        // if (!int_type(lhs_type) || !int_type(rhs_type)) {
+            // type_error("Both operands of a comparison must be integers");
+            // lhs_type = PLType::UNDEFINED;
+        // }
+        // else {
+            // lhs_type = PLType::BOOL_CONST;
+        // }
     }
     // epsilon production 
     else {
@@ -652,47 +654,50 @@ void Parser::relational_operator()
 }
 
 
-void Parser::simple_expression(PLType &type)
+PLType Parser::simple_expression()
 {
     std::string nonterm = "simple_expression";
     std::set<Symbol> first{NOT, LEFT_PARENTHESIS, NUMERAL, TRUE_KEYWORD, FALSE_KEYWORD, IDENTIFIER};
     auto s = next_token->symbol;
     if (s == SUBTRACT) {
         match(s, nonterm);
-        term(type);
-        if (!int_type(type)) {
+        auto lhs = term();
+        if (!equals(lhs, PLType::INTEGER)) {
             type_error("Cannot negate a non integer value");
-            type = PLType::UNDEFINED;
+            lhs = PLType::UNDEFINED;
         }
-        simple_expression_end(type);
+        simple_expression_end(lhs);
+        return lhs;
     }
     else if (sfind(first, s)) {
-        term(type);
-        simple_expression_end(type);
+        auto lhs = term();
+        simple_expression_end();
     }
     else {
         syntax_error(nonterm);
+        return PLType::UNDEFINED;
     }
 }
 
 
-void Parser::simple_expression_end(PLType &lhs_type)
+void Parser::simple_expression_end(PLType lhs)
 {
     std::string nonterm = "simple_expression_end";
     auto s = next_token->symbol;
     if (s == ADD || s == SUBTRACT) {
         adding_operator();
-        auto rhs_type = PLType::UNDEFINED;
-        term(rhs_type);
-        if (int_type(lhs_type) && int_type(rhs_type)) {
-            lhs_type = PLType::INT_CONST;
-        }
-        else {
+        auto rhs = term();
+
+
+
+        auto rhs = simple_expression_end();
+
+        if (!equals())
             type_error("Both operands of addition type operator must be integers");
             lhs_type = PLType::UNDEFINED;
         }
         
-        simple_expression_end(lhs_type);
+        
     }
     // epsilon production 
     else {
@@ -760,45 +765,48 @@ void Parser::multiplying_operator()
 }
 
 
-void Parser::factor(PLType &type)
+PLType Parser::factor()
 {
     std::string nonterm = "factor";
     auto s = next_token->symbol;
     if (s == LEFT_PARENTHESIS) {
         match(s, nonterm);
-        expression(type);
+        auto type = expression();
         match(RIGHT_PARENTHESIS, nonterm);
+        return type;
     }
     else if (s == IDENTIFIER) {
-        variable_access(type);
+        return variable_access();
     }
     else if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD) {
-        constant(type);
+        return constant();
     }
     else if (s == NOT) {
         match(s, nonterm);
-        factor(type);
-        if (!bool_type(type)) {
+        auto type = factor();
+        if (!equals(type, PLType::BOOLEAN)) {
             type_error("Cannot take logical inverse of a non Boolean expression");
-            type = PLType::UNDEFINED;
+            return PLType::UNDEFINED;
         }
         else {
-            type = PLType::BOOL_CONST;
+            return PLType::BOOLEAN;
         }
     }
     else {
         syntax_error(nonterm);
+        return PLType::UNDEFINED;
     }
 }
 
 
-void Parser::variable_access(PLType &type)
+std::string Parser::variable_access()
 {
     std::string nonterm = "variable_access";
     match(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
-    type = get_type(id);
+    // auto type = get_type(id);
     variable_access_end();
+    return id;
 }
 
 
@@ -820,9 +828,8 @@ void Parser::indexed_selector()
 {
     std::string nonterm = "indexed_selector";
     match(LEFT_BRACKET, nonterm);
-    auto index_type = PLType::UNDEFINED;
-    expression(index_type);
-    if (!int_type(index_type)) {
+    auto ind_type = expression();
+    if (!equals(ind_type, PLType::INTEGER)) {
         error_preamble();
         std::cout << "Array index must be integer type" << std::endl;
     }
@@ -830,26 +837,38 @@ void Parser::indexed_selector()
 }
 
 
-void Parser::constant(PLType &type)
+PLType Parser::constant()
 {
     std::string nonterm = "constant";
     auto s = next_token->symbol;
     if (s == NUMERAL) {
-        type = PLType::INT_CONST;
         match(s, nonterm);
+        return PLType::INTEGER;
     }
     else if (s == TRUE_KEYWORD || s == FALSE_KEYWORD) {
-        type = PLType::BOOL_CONST;
         match(s, nonterm);
+        return PLType::BOOLEAN;
     }
     else if (s == IDENTIFIER) {
-
         auto id = next_token->lexeme;
-        type = get_type(id);
         match(s, nonterm);
+        try {
+            BlockData &data = block_table.find(id);
+            if (!data.constant) {
+                error_preamble();
+                cerr << "Found non-constant value where constant expected" << endl;
+                return PLType::UNDEFINED;
+            }
+            return data.type;
+        }
+        catch (const scope_error &e) {
+            cerr << e.what() << endl;
+            return PLType::UNDEFINED;
+        }
     }
     else {
         syntax_error(nonterm);
+        return PLType::UNDEFINED;
     }
 }
 

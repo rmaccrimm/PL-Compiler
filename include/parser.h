@@ -88,7 +88,7 @@ private:
     void constant_definition();
     void variable_definition();
     void variable_definition_type(PLType varlist_type);
-    void type_symbol(PLType &type);
+    PLType type_symbol();
     void variable_list(std::vector<std::string> &var_list);
     void variable_list_end(std::vector<std::string> &var_list);
     void procedure_definition();
@@ -96,8 +96,8 @@ private:
     void statement();
     void empty_statement();
     void read_statement();
-    void variable_access_list(std::vector<PLType> &types);
-    void variable_access_list_end(std::vector<PLType> &types);
+    void variable_access_list(std::vector<std::string> &vars); 
+    void variable_access_list_end(std::vector<std::string> &vars);
     void write_statement();
     void expression_list(std::vector<PLType> &types);
     void expression_list_end(std::vector<PLType> &types);
@@ -108,23 +108,23 @@ private:
     void guarded_command_list();
     void guarded_command_list_end();
     void guarded_command();
-    void expression(PLType &type);
-    void expression_end(PLType &lhs_type);
+    PLType expression();
+    PLType expression_end();
     void primary_operator();
-    void primary_expression(PLType &type);
-    void primary_expression_end(PLType &lhs_type);
+    PLType primary_expression();
+    PLType primary_expression_end();
     void relational_operator();
-    void simple_expression(PLType &type);
-    void simple_expression_end(PLType &lsh_type);
+    PLType simple_expression();
+    PLType simple_expression_end();
     void adding_operator();
-    void term(PLType &type);
-    void term_end(PLType &lhs_type);
+    PLType term();
+    PLType term_end();
     void multiplying_operator();
-    void factor(PLType &type);
-    void variable_access(PLType &type);
+    PLType factor();
+    std::string variable_access();
     void variable_access_end();
     void indexed_selector();
-    void constant(PLType &type);
+    PLType constant();
 
     // Initialize first and follow sets
     void init_symbol_sets();    
