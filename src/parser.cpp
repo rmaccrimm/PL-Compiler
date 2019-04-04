@@ -608,35 +608,28 @@ void Parser::primary_operator()
 PLType Parser::primary_expression()
 {
 	std::string nonterm = "primary_expression";
-    auto lhs = simple_expression();
-    primary_expression_end();
-    return lhs;
+    auto lhs_type = simple_expression();
+    return primary_expression_end(lhs_type);
 }
 
 
-void Parser::primary_expression_end(PLType lhs)
+PLType Parser::primary_expression_end(PLType lhs_type)
 {
-    std::string nonterm = "primary_expression_end"; 
+    std::string nonterm = "primary_expression_end";
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == GREATER_THAN || s == EQUALS) {
         relational_operator();
-        auto rhs = primary_expression();
-        if (!(equals(lhs, PLType::INTEGER) && equals(PLType::INTEGER, rhs))) {
+        auto rhs_type = primary_expression();
+        if (!(equals(lhs_type, PLType::INTEGER) && equals(PLType::INTEGER, rhs_type))) {
             type_error("Both operands of a comparison must be integers");
+            return PLType::UNDEFINED;
         }
-        // auto rhs_type = PLType::UNDEFINED;
-        // simple_expression(rhs_type);
-        // if (!int_type(lhs_type) || !int_type(rhs_type)) {
-            // type_error("Both operands of a comparison must be integers");
-            // lhs_type = PLType::UNDEFINED;
-        // }
-        // else {
-            // lhs_type = PLType::BOOL_CONST;
-        // }
+        return lhs_type
     }
     // epsilon production 
     else {
 		check_follow(nonterm);
+        return lhs_type;
 	}
 }
 
@@ -661,17 +654,16 @@ PLType Parser::simple_expression()
     auto s = next_token->symbol;
     if (s == SUBTRACT) {
         match(s, nonterm);
-        auto lhs = term();
-        if (!equals(lhs, PLType::INTEGER)) {
+        auto lhs_type = term();
+        if (!equals(lhs_type, PLType::INTEGER)) {
             type_error("Cannot negate a non integer value");
-            lhs = PLType::UNDEFINED;
+            lhs_type = PLType::UNDEFINED;
         }
-        simple_expression_end(lhs);
-        return lhs;
+        return simple_expression_end(lhs);
     }
     else if (sfind(first, s)) {
         auto lhs = term();
-        simple_expression_end();
+        return simple_expression_end(lhs);
     }
     else {
         syntax_error(nonterm);
@@ -680,28 +672,23 @@ PLType Parser::simple_expression()
 }
 
 
-void Parser::simple_expression_end(PLType lhs)
+PLType Parser::simple_expression_end(PLType lhs_type)
 {
     std::string nonterm = "simple_expression_end";
     auto s = next_token->symbol;
     if (s == ADD || s == SUBTRACT) {
         adding_operator();
-        auto rhs = term();
-
-
-
-        auto rhs = simple_expression_end();
-
-        if (!equals())
+        auto rhs_type = term();
+        if (!equals(lhs_type, PLType::INTEGER) || !equals(rhs_type, PLType::INTEGER)) {
             type_error("Both operands of addition type operator must be integers");
             lhs_type = PLType::UNDEFINED;
         }
-        
-        
+        return simple_expression_end(lhs_type);
     }
     // epsilon production 
     else {
         check_follow(nonterm); 
+        return lhs_type
     }
 }
 
@@ -719,35 +706,31 @@ void Parser::adding_operator()
 }
 
 
-void Parser::term(PLType &type)
+PLType Parser::term()
 {
     std::string nonterm = "term";
-    factor(type);
-    term_end(type);
+    auto type = factor();
+    return term_end(type);
 }
 
 
-void Parser::term_end(PLType &lhs_type)
+PLType Parser::term_end(PLType lhs_type)
 {
     std::string nonterm = "term_end";
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s == MODULO) {
         multiplying_operator();
-        auto rhs_type = PLType::UNDEFINED;
-        factor(rhs_type);
-        if (int_type(lhs_type) && int_type(rhs_type)) {
-            lhs_type = PLType::INT_CONST;
-        }
-        else {
+        auto rhs_type = factor();
+        if (!equals(lhs_type, PLType::INTEGER || !equals(rhs_type, PLType::INTEGER))) {
             type_error("Both operands of multiplication type operators must be integers");
             lhs_type = PLType::UNDEFINED;
         }
-        
-        term_end(lhs_type);
+        return term_end(lhs_type);
     }
     // epsilon production 
     else {
-        check_follow(nonterm);  
+        check_follow(nonterm);
+        return lhs_type;
     }
 }
 
@@ -776,7 +759,16 @@ PLType Parser::factor()
         return type;
     }
     else if (s == IDENTIFIER) {
-        return variable_access();
+        id =  variable_access();
+        try {
+            BlockData &data = block_table.find(id);
+            return data.type;
+        }
+        catch (const scope_error &e) {
+            error_preamble();
+            cerr << e.what() << endl;
+            return PLType::UNDEFINED;
+        }
     }
     else if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD) {
         return constant();
@@ -788,9 +780,7 @@ PLType Parser::factor()
             type_error("Cannot take logical inverse of a non Boolean expression");
             return PLType::UNDEFINED;
         }
-        else {
-            return PLType::BOOLEAN;
-        }
+        return type;
     }
     else {
         syntax_error(nonterm);
