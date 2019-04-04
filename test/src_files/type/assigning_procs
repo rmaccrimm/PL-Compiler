@@ -6,7 +6,7 @@ begin
     proc F begin end;
     proc G begin end;
 
-    F := G;
+    F := G; 
     F := q;
     F := 10;
     F := false;

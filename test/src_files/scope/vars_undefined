@@ -1,17 +1,16 @@
-$ Using undefined vars gives 2 errors, 1 for using before defined, 1 for using undefined type
-$ in an expression expecting bool or int - expect 17 errors total
+$ expect 11 errors total
 begin
-    Boolean array A[n]; $ 2 errors
+    Boolean array A[n]; $ 1 errors
     proc func
     begin
-        x := 12; $ 2 errors
-        if ~(x > 13) -> skip; $ 4 errors
+        x := 12; $ 1 errors
+        if ~(x > 13) -> skip; $ 1 errors
         fi;
     end;
-    c := b; $ 3 errors
-    read y, x, z; $ 6 errors
-    b := 12; $ 2 errors
+    c := b; $ 2 errors
+    read y, x, z; $ 3 errors
+    b := 12; $ 1 errors
     A[1] := false; $ fine
-    A[2] := z; $ 2 errors
-    call gunc; $ 2 errors
+    A[2] := z; $ 1 errors
+    call gunc; $ 1 errors
 end.

@@ -1,4 +1,4 @@
-$ assigning the result of comparisons and logic operations - expect 25 errors
+$ assigning the result of comparisons and logic operations - expect 15 errors
 begin
     integer x, y, z;
     Boolean a, b, c;
@@ -10,9 +10,9 @@ begin
     a := ~f;
     x := ~false; $ 1 error
     B[r] := ~b;
-    x := ~10; $ 2 errors
-    x := ~y; $ 2 errors
-    b := ~func; $ 2 errors
+    x := ~10; $ 1 errors
+    x := ~y; $ 1 errors
+    b := ~func; $ 1 errors
 
     $ some valid expression
     a := 1 < x;
@@ -27,10 +27,10 @@ begin
     x := b & c; $ 1 error
     x := 10 = 10; $ 1 error
 
-    b := f < 12; $ 2 errors
-    c := 6 & 6; $ 2 errors
-    a,b,c := 12 > false, q < t, b < c; $ 6 errors
+    b := f < 12; $ 1 errors
+    c := 6 & 6; $ 1 errors
+    a,b,c := 12 > false, q < t, b < c; $ 3 errors
 
-    a := func < 12; $ 2 errors
-    B[x] := func = func; $ 2 errors
+    a := func < 12; $ 1 errors
+    B[x] := func = func; $ 1 errors
 end.

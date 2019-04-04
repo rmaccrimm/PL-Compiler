@@ -1,15 +1,15 @@
 $ when a variable is used for array size, it must be a constant integer and must be defined already
-$ expect 5 errors
+$ expect 4 errors
 begin
-    integer array A, C, D, E[n]; $ double error, not defined, not type const int (undefined type)
+    integer array A, C, D, E[n]; $ 1 error - n not defined
     const f = false;
-    integer array QW[f]; 
+    integer array QW[f];  $ 1 error - not an int
     proc B begin end;
     Boolean x;
-    integer array q[B]; 
+    integer array q[B]; $ 1 error - non const
     integer array
     z
     [
-        x
+        x   $ 1 error - not const
     ];
 end.

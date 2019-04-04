@@ -65,12 +65,12 @@ TEST_CASE("Procedure scope", "[proc-scope]")
 
 TEST_CASE("Nested procedures", "[nested_proc]")
 {
-    run_test("test/src_files/scope/nested_funcs", 3);
+    run_test("test/src_files/scope/nested_funcs", 2);
 }
 
 TEST_CASE("Array bounds type", "[array-bounds]")
 {
-    run_test("test/src_files/type/array_size", 5);
+    run_test("test/src_files/type/array_size", 4);
 }
 
 TEST_CASE("Assigning literal", "[assign-literal]")
@@ -90,12 +90,12 @@ TEST_CASE("Read and write statements", "[read-write]")
 
 TEST_CASE("Assign arithmetic expressions", "[assign-arithmetic]")
 {
-    run_test("test/src_files/type/assigning_arithmetic", 23);
+    run_test("test/src_files/type/assigning_arithmetic", 12);
 }
 
-TEST_CASE("Assign logic expressions", "[assign-logic]")
+TEST_CASE("Assign comparisons", "[assign-comp]")
 {
-    run_test("test/src_files/type/assigning_comparisons", 25);
+    run_test("test/src_files/type/assigning_comparisons", 15);
 }
 
 TEST_CASE("Guarded commands", "[guarded]")
@@ -105,5 +105,5 @@ TEST_CASE("Guarded commands", "[guarded]")
 
 TEST_CASE("Undefined variables", "[vars]")
 {
-    run_test("test/src_files/scope/vars_undefined", 23);
+    run_test("test/src_files/scope/vars_undefined", 11);
 }

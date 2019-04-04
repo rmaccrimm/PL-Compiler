@@ -92,7 +92,7 @@ void Parser::syntax_error(std::string nonterminal)
 void Parser::type_error(std::string msg)
 {
     error_preamble();
-    std::cout << "TYPE ERROR - " << msg << std::endl;
+    std::cout << msg << std::endl;
 }
 
 
@@ -431,7 +431,7 @@ void Parser::write_statement()
     std::vector<PLType> types;
     expression_list(types);
     for (auto t: types) {
-        if (!equals(t, PLType::PROCEDURE)) {
+        if (equals(t, PLType::PROCEDURE)) {
             type_error("Cannot write procedure");
         }
     }
@@ -484,6 +484,9 @@ void Parser::assignment_statement()
                 if (data.constant) {
                     type_error("Cannot assign value to constant " + id);
                 }
+                else if ((data.type == PLType::PROCEDURE) || (e_type == PLType::PROCEDURE)) {
+                    type_error("Procedure type cannot be used in assignment statement");
+                }
                 else if (!equals(data.type, e_type)) {
                     type_error("Mismatch between types of LHS and RHS of assignment statement");
                 }
@@ -503,7 +506,7 @@ void Parser::procedure_statement()
     match(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
     auto type = get_type(id);
-    if (type != PLType::PROCEDURE) {
+    if (!equals(type, PLType::PROCEDURE)) {
         type_error("Cannot call a non procedure type");
     }
 }
@@ -568,26 +571,28 @@ void Parser::guarded_command()
 PLType Parser::expression()
 {
     std::string nonterm = "expression";
-    auto lhs = primary_expression();
-    expression_end(lhs);
-    return lhs;
+    auto lhs_type = primary_expression();
+    return expression_end(lhs_type);
 }
 
 
-void Parser::expression_end(PLType lhs)
+PLType Parser::expression_end(PLType lhs_type)
 {
     std::string nonterm = "expression_end";
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
         primary_operator();
-        auto rhs = expression();
-        if (!(equals(lhs, PLType::BOOLEAN) && equals(rhs, PLType::BOOLEAN))) {
+        auto rhs_type = expression();
+        if (!equals(lhs_type, PLType::BOOLEAN) || !equals(rhs_type, PLType::BOOLEAN)) {
             type_error("Both operands for logical operator must be Boolean");
+            return PLType::UNDEFINED;
         }
+        return lhs_type;
     }
     // epsilon production 
     else {
 		check_follow(nonterm);
+        return lhs_type;
 	}
 }
 
@@ -624,7 +629,7 @@ PLType Parser::primary_expression_end(PLType lhs_type)
             type_error("Both operands of a comparison must be integers");
             return PLType::UNDEFINED;
         }
-        return lhs_type
+        return PLType::BOOLEAN;
     }
     // epsilon production 
     else {
@@ -659,11 +664,11 @@ PLType Parser::simple_expression()
             type_error("Cannot negate a non integer value");
             lhs_type = PLType::UNDEFINED;
         }
-        return simple_expression_end(lhs);
+        return simple_expression_end(lhs_type);
     }
     else if (sfind(first, s)) {
-        auto lhs = term();
-        return simple_expression_end(lhs);
+        auto lhs_type = term();
+        return simple_expression_end(lhs_type);
     }
     else {
         syntax_error(nonterm);
@@ -688,7 +693,7 @@ PLType Parser::simple_expression_end(PLType lhs_type)
     // epsilon production 
     else {
         check_follow(nonterm); 
-        return lhs_type
+        return lhs_type;
     }
 }
 
@@ -721,7 +726,7 @@ PLType Parser::term_end(PLType lhs_type)
     if (s == MULTIPLY || s == DIVIDE || s == MODULO) {
         multiplying_operator();
         auto rhs_type = factor();
-        if (!equals(lhs_type, PLType::INTEGER || !equals(rhs_type, PLType::INTEGER))) {
+        if (!equals(lhs_type, PLType::INTEGER) || !equals(rhs_type, PLType::INTEGER)) {
             type_error("Both operands of multiplication type operators must be integers");
             lhs_type = PLType::UNDEFINED;
         }
@@ -759,7 +764,7 @@ PLType Parser::factor()
         return type;
     }
     else if (s == IDENTIFIER) {
-        id =  variable_access();
+        auto id =  variable_access();
         try {
             BlockData &data = block_table.find(id);
             return data.type;
@@ -852,6 +857,7 @@ PLType Parser::constant()
             return data.type;
         }
         catch (const scope_error &e) {
+            error_preamble();
             cerr << e.what() << endl;
             return PLType::UNDEFINED;
         }

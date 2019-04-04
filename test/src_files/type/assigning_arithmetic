@@ -1,4 +1,4 @@
-$ assigning the result of arithmetic expressions to vars - expect 23 errors
+$ assigning the result of arithmetic expressions to vars - expect 12 errors
 begin
     integer x, y, z;
     Boolean a;
@@ -7,14 +7,14 @@ begin
 
     x, y := q + 20 * 1 * (1 / 13 + r - s), q \ r / s;
 
-    x := f + 10; $ 2 errors, 1 from operation, 1 from assignment
-    x := 12 - t; $ 2 errors
-    x := r * t; $ 2 errors
-    x := s / false; $ 2 errors
-    x := f \ s; $ 2 errors
-    x, y := f + t, f - t; $ 4 errors
-    x, y ,z := f * t, f / t, f \ t; $ 6 errors
+    x := f + 10; $ 1 error
+    x := 12 - t; $ 1 error
+    x := r * t; $ 1 error
+    x := s / false; $ 1 errors
+    x := f \ s; $ 1 errors
+    x, y := f + t, f - t; $ 2 errors
+    x, y ,z := f * t, f / t, f \ t; $ 3 errors
     
     a := q + r; $ 1 error
-    a := false - false; $ 2 errors
+    a := false - false; $ 1 errors
 end.
