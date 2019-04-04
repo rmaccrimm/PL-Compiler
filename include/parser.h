@@ -42,10 +42,14 @@ private:
     // Always save the last identifier token matched
     Token matched_id;
 
-    // Used to track height of call stack for printing function calls with indentation
-    int depth;
     int num_errors;
     int line;
+    int label_num;
+
+
+    // Code generations functions
+    int new_label();
+    void emit(std::string instr, std::vector<int> args = {});
 
     // Move to next character in input. Throw eof_error if EOF reached
     void read_next();
@@ -60,7 +64,7 @@ private:
     void error_preamble();
 
     // Catch potential scope_errors 
-    void define_var(std::string id, PLType type, int size, bool constant);
+    void define_var(std::string id, PLType type, int size, bool constant, int d = 0, int v= 0, bool a = false);
 
     // Types of error messages
     void type_error(std::string err_mgs);
@@ -81,12 +85,14 @@ private:
         Reference parameters in functions are used to return additional values
     */
     void program();
-    void block();
-    void definition_part();
-    void definition();
+    void block(int lvar, int lstart);
+    // Return length needed to store all variables
+    int definition_part();
+    // Return length needed for vars defined 
+    int definition(int &var_start);
     void constant_definition();
-    void variable_definition();
-    void variable_definition_type(PLType varlist_type);
+    int variable_definition(int &var_start);
+    int variable_definition_type(PLType varlist_type, int &var_start);
     PLType type_symbol();
     void variable_list(std::vector<std::string> &var_list);
     void variable_list_end(std::vector<std::string> &var_list);
@@ -104,9 +110,9 @@ private:
     void procedure_statement();
     void if_statement();
     void do_statement();
-    void guarded_command_list();
-    void guarded_command_list_end();
-    void guarded_command();
+    void guarded_command_list(int &start_label, int &goto_label);
+    void guarded_command_list_end(int &start_label, int &goto_label);
+    void guarded_command(int &start_label, int &goto_label);
     PLType expression();
     PLType expression_end(PLType lhs_type);
     void primary_operator();
@@ -123,7 +129,8 @@ private:
     std::string variable_access();
     void variable_access_end();
     void indexed_selector();
-    PLType constant();
+    PLType constant(int &value);
+    // PLType constant();
 
     // Initialize first and follow sets
     void init_symbol_sets();    

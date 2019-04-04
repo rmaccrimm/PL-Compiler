@@ -11,9 +11,10 @@ bool equals(const PLType &lhs, const PLType &rhs)
 }
 
 
-BlockTable::BlockTable() {}
+BlockTable::BlockTable(): curr_level{0} {}
 
 void BlockTable::push_new() {
+    curr_level++;
     table.push_back(Block());
 }
 
@@ -34,13 +35,13 @@ BlockData& BlockTable::find(std::string id)
     throw scope_error("Identifier " + id + " is undefined");
 }
 
-void BlockTable::insert(std::string id, PLType t, int s, bool c, int v)
+void BlockTable::insert(std::string id, PLType t, int s, bool c, int d, int v, bool a)
 {
     assert(table.size() > 0);
     auto last = table.rbegin();
     if (last->find(id) != last->end()) {
         throw scope_error("Identifier " + id + " already defined in currents scope");
     }
-    BlockData data = {t, s, c, v};
+    BlockData data = {t, s, c, d, v, a, curr_level};
     last->emplace(id, data);
 }

@@ -27,7 +27,10 @@ struct BlockData
     PLType type;
     int size;
     bool constant;
-    int value;
+    int displacement;
+    int var_start;
+    bool array;
+    int level;
 };
 
 typedef std::map<std::string, BlockData> Block;
@@ -45,7 +48,9 @@ public:
     BlockData& find(std::string id);
 
     // If already exists in same block, throw scope_error
-    void insert(std::string id, PLType t, int s = 1, bool c = false, int v = 0);
+    void insert(std::string id, PLType t, int s = 1, bool c = false, int d = 0, int vs = 0, bool a = false);
+
+    int curr_level;
 
 private:
     std::vector<Block> table;

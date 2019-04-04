@@ -1,38 +1,8 @@
-$PL Program: Linear Search
+$Program simple; a sample program written in the language PL
 begin
-    const n = 10; integer array A[n];
-
-    proc Search
-    begin integer m;
-        i,m := 1,n;
-        do i < m ->
-            if A[i] = x -> m := i; []
-                ~(A[i] = x) -> i := i+1;
-            fi;
-        od;
-
-    end;
-    $ Input table
-    i := 1;
-    do ~(i > n) -> read A[i]; 
-        i:= i+1; 
-    od;
-    $Test search:
-    read x;
-    do ~(x = 0) -> 
-        call Search;
-        
-            ~found -> write x;
-        fi;
-        read x;
-    od;
+const b = true;
+integer i;
+read i;
+i := i + 1;
+write i;
 end.
-
-begin
-end.
-
-                       
-
-
-
-                       
