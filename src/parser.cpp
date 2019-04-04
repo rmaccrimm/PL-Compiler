@@ -9,11 +9,6 @@ using std::endl;
 // Slightly simpler syntax for looking up an element of a set, return true if found
 bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
 
-// Groups of types
-// bool const_type(PLType t) { return t == PLType::BOOL_CONST || t == PLType::INT_CONST; }
-// bool bool_type(PLType t) { return t == PLType::BOOL_CONST || t == PLType::BOOL_VAR; }
-// bool int_type(PLType t) { return t == PLType::INT_CONST || t == PLType::INT_VAR; }
-
 
 Parser::Parser(): line{1}, depth{0}, num_errors{0}
 {
@@ -123,20 +118,6 @@ void Parser::define_var(std::string id, PLType type, int size, bool constant) {
     catch (const scope_error &e) {
         error_preamble();
         cerr << e.what() << endl;
-    }
-}
-
-
-PLType Parser::get_type(std::string id) 
-{
-    try {
-        BlockData &t = block_table.find(id);
-        return t.type;
-    }
-    catch (const scope_error &e) {
-        error_preamble();
-        cerr << e.what() << endl;
-        return PLType::UNDEFINED;
     }
 }
 
@@ -505,9 +486,15 @@ void Parser::procedure_statement()
     match(CALL, nonterm);
     match(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
-    auto type = get_type(id);
-    if (!equals(type, PLType::PROCEDURE)) {
-        type_error("Cannot call a non procedure type");
+    try {
+        BlockData &data = block_table.find(id);
+        if (!equals(data.type, PLType::PROCEDURE)) {
+            type_error("Cannot call a non procedure type");
+        }
+    }
+    catch (const scope_error &e) {
+        error_preamble();
+        cerr << e.what() << endl;
     }
 }
 
@@ -799,7 +786,6 @@ std::string Parser::variable_access()
     std::string nonterm = "variable_access";
     match(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
-    // auto type = get_type(id);
     variable_access_end();
     return id;
 }

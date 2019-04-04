@@ -61,7 +61,6 @@ private:
 
     // Catch potential scope_errors 
     void define_var(std::string id, PLType type, int size, bool constant);
-    PLType get_type(std::string id);
 
     // Types of error messages
     void type_error(std::string err_mgs);
