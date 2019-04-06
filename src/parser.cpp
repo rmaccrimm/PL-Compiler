@@ -13,7 +13,7 @@ using std::endl;
 bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
 
 
-Parser::Parser(): line{1}, num_errors{0}, label_num{1}
+Parser::Parser(Compiler * const c): line{1}, num_errors{0}, label_num{1}, compiler{c}
 {
     init_symbol_sets();
 }
@@ -39,17 +39,6 @@ int Parser::verify_syntax(std::vector<Token> *input_tokens)
 int Parser::new_label()
 {
     return label_num++;
-}
-
-
-void Parser::emit(std::string instr, std::vector<int> args)
-{
-    if (PRINT) {
-        cout << instr << endl;
-        for (auto a: args) {
-            cout << a << endl;
-        }
-    }
 }
 
 
@@ -147,12 +136,12 @@ void Parser::program()
 {
     std::string nonterm = "program";
     int lvar = new_label(), lstart = new_label();
-    emit("PROG", {lvar, lstart});
+    compiler->emit("PROG", {lvar, lstart});
     block_table.push_new();
     block(lvar, lstart);
     block_table.pop();
     match(PERIOD, nonterm);
-    emit("ENDPROG");
+    compiler->emit("ENDPROG");
     // Matching an eof token would normally produce an error message, so handle in special case here
     if (next_token->symbol != END_OF_FILE) {
         num_errors++;
@@ -168,8 +157,8 @@ void Parser::block(int lvar, int lstor)
     std::string nonterm = "block";
     match(BEGIN, nonterm);
     int var_len = definition_part();
-    emit("DEFARG", {lvar, var_len});
-    emit("DEFADDR", {lstor});
+    compiler->emit("DEFARG", {lvar, var_len});
+    compiler->emit("DEFADDR", {lstor});
     statement_part();
     match(END, nonterm);
 }
@@ -327,10 +316,10 @@ void Parser::procedure_definition()
     define_var(id, PLType::PROCEDURE, 1, false, 0, lproc);
     int lvar = new_label(), lstart = new_label();
     block_table.push_new();
-    emit("DEFADDR", {lproc});
-    emit("PROC", {lvar, lstart});
+    compiler->emit("DEFADDR", {lproc});
+    compiler->emit("PROC", {lvar, lstart});
     block(lstart, lvar);
-    emit("ENDPROC");
+    compiler->emit("ENDPROC");
     block_table.pop();
 } 
 
@@ -397,7 +386,7 @@ void Parser::read_statement()
     match(READ, nonterm);
     std::vector<std::string> vars;
     variable_access_list(vars);
-    emit("READ", {static_cast<int>(vars.size())});
+    compiler->emit("READ", {static_cast<int>(vars.size())});
     for (auto id: vars) {
         try {
             BlockData &data = block_table.find(id);
@@ -449,7 +438,7 @@ void Parser::write_statement()
     match(WRITE, nonterm);
     std::vector<PLType> types;    
     expression_list(types);
-    emit("WRITE", {static_cast<int>(types.size())});
+    compiler->emit("WRITE", {static_cast<int>(types.size())});
     for (auto t: types) {
         if (equals(t, PLType::PROCEDURE)) {
             type_error("Cannot write procedure");
@@ -490,7 +479,7 @@ void Parser::assignment_statement()
     variable_access_list(vars);
     match(ASSIGN, nonterm);
     expression_list(expr_types);
-    emit("ASSIGN", {static_cast<int>(expr_types.size())});
+    compiler->emit("ASSIGN", {static_cast<int>(expr_types.size())});
     if (vars.size() != expr_types.size()) {
         error_preamble();
         std::cout << "Number of variables does not match number of expressions" << std::endl;
@@ -530,7 +519,7 @@ void Parser::procedure_statement()
         if (!equals(data.type, PLType::PROCEDURE)) {
             type_error("Cannot call a non procedure type");
         }
-        emit("CALL", {block_table.curr_level - data.level, data.var_start});
+        compiler->emit("CALL", {block_table.curr_level - data.level, data.var_start});
     }
     catch (const scope_error &e) {
         error_preamble();
@@ -545,9 +534,9 @@ void Parser::if_statement()
     int lstart = new_label(), ldone = new_label();
     match(IF, nonterm);
     guarded_command_list(lstart, ldone);
-    emit("DEFADDR", {lstart});
-    emit("FI", {line});
-    emit("DEFADDR", {ldone});
+    compiler->emit("DEFADDR", {lstart});
+    compiler->emit("FI", {line});
+    compiler->emit("DEFADDR", {ldone});
     match(FI, nonterm);
 }
 
@@ -557,9 +546,9 @@ void Parser::do_statement()
 	std::string nonterm = "do_statement";
     int lstart = new_label(), lloop = new_label();
     match(DO, nonterm);
-    emit("DEFADDR", {lloop});
+    compiler->emit("DEFADDR", {lloop});
     guarded_command_list(lstart, lloop);
-    emit("DEFADDR", {lstart});
+    compiler->emit("DEFADDR", {lstart});
     match(OD, nonterm);
 }
 
@@ -591,16 +580,16 @@ void Parser::guarded_command_list_end(int &start_label, int &goto_label)
 void Parser::guarded_command(int &start_label, int &goto_label)
 {
     std::string nonterm = "guarded_command";
-    emit("DEFADDR", {start_label});
+    compiler->emit("DEFADDR", {start_label});
     auto guard_type = expression();
     start_label = new_label();
-    emit("ARROW", {start_label});
+    compiler->emit("ARROW", {start_label});
     if (!equals(guard_type, PLType::BOOLEAN)) {
         type_error("Guarded command must evaluate to Boolean type");
     }
     match(RIGHT_ARROW, nonterm);
     statement_part();
-    emit("BAR", {goto_label});
+    compiler->emit("BAR", {goto_label});
 }
 
 
@@ -617,7 +606,7 @@ PLType Parser::expression_end(PLType lhs_type)
     std::string nonterm = "expression_end";
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
-        emit((s == AND ? "AND" : "OR"));
+        compiler->emit((s == AND ? "AND" : "OR"));
         primary_operator();
         auto rhs_type = expression();
         if (!equals(lhs_type, PLType::BOOLEAN) || !equals(rhs_type, PLType::BOOLEAN)) {
@@ -661,9 +650,9 @@ PLType Parser::primary_expression_end(PLType lhs_type)
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == GREATER_THAN || s == EQUALS) {
         switch (s) {
-            case LESS_THAN: emit("LESS"); break;
-            case GREATER_THAN: emit("GREATER"); break;
-            case EQUALS: emit("EQUAL"); break;
+            case LESS_THAN: compiler->emit("LESS"); break;
+            case GREATER_THAN: compiler->emit("GREATER"); break;
+            case EQUALS: compiler->emit("EQUAL"); break;
         }
         relational_operator();
         auto rhs_type = primary_expression();
@@ -724,7 +713,7 @@ PLType Parser::simple_expression_end(PLType lhs_type)
     std::string nonterm = "simple_expression_end";
     auto s = next_token->symbol;
     if (s == ADD || s == SUBTRACT) {
-        emit((s == ADD ? "ADD" : "SUBTRACT"));
+        compiler->emit((s == ADD ? "ADD" : "SUBTRACT"));
         adding_operator();
         auto rhs_type = term();
         if (!equals(lhs_type, PLType::INTEGER) || !equals(rhs_type, PLType::INTEGER)) {
@@ -768,9 +757,9 @@ PLType Parser::term_end(PLType lhs_type)
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s == MODULO) {
         switch (s) {
-            case MULTIPLY: emit("MULTIPLY"); break;
-            case DIVIDE: emit("DIVIDE"); break;
-            case MODULO: emit("MODULO"); break;
+            case MULTIPLY: compiler->emit("MULTIPLY"); break;
+            case DIVIDE: compiler->emit("DIVIDE"); break;
+            case MODULO: compiler->emit("MODULO"); break;
         }
         multiplying_operator();
         auto rhs_type = factor();
@@ -826,24 +815,24 @@ PLType Parser::factor()
         if (data.constant) {
             int value;
             auto type = constant(value);
-            emit("CONSTANT", {value});
+            compiler->emit("CONSTANT", {value});
             return type;    
         }
         else {
             id = variable_access();
             data = block_table.find(id);
-            emit("VALUE");
+            compiler->emit("VALUE");
             return data.type;
         }
     }
     else if (s == NUMERAL || s == TRUE_KEYWORD || s == FALSE_KEYWORD) {
         int value;
         auto type = constant(value);
-        emit("CONSTANT", {value});
+        compiler->emit("CONSTANT", {value});
         return type;
     }
     else if (s == NOT) {
-        emit("NOT");
+        compiler->emit("NOT");
         match(s, nonterm);
         auto type = factor();
         if (!equals(type, PLType::BOOLEAN)) {
@@ -866,9 +855,9 @@ std::string Parser::variable_access()
     auto id = matched_id.lexeme;
     try {
         auto data = block_table.find(id);
-        emit("VARIABLE", {block_table.curr_level - data.level, data.displacement});
+        compiler->emit("VARIABLE", {block_table.curr_level - data.level, data.displacement});
         if (data.array) {
-            emit("INDEX", {data.size, line});
+            compiler->emit("INDEX", {data.size, line});
         }
     }
     catch (const scope_error &e) {

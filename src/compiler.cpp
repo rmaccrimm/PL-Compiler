@@ -5,8 +5,13 @@
 #include <vector>
 #include <algorithm>
 
-Compiler::Compiler(std::ifstream &input_file) : 
-    scanner(input_file, sym_table), current_line{1}, error_count{0}, MAX_ERRORS{10} {}
+using std::cout;
+using std::cerr;
+using std::endl;
+
+Compiler::Compiler(std::ifstream &input_file, bool p) : 
+    scanner(input_file, sym_table), parser(this), current_line{1}, error_count{0}, MAX_ERRORS{10},
+    print{p} {}
 
 bool Compiler::run()
 {
@@ -30,6 +35,16 @@ int Compiler::scan(std::vector<Token> &scanner_output)
     std::copy(token_list.begin(), token_list.end(), scanner_output.begin());
     // False if errors were found in tokenization
     return error_count;
+}
+
+void Compiler::emit(std::string instr, std::vector<int> args)
+{
+    if (print) {
+        cout << instr << endl;
+        for (auto a: args) {
+            cout << a << endl;
+        }
+    }
 }
 
 std::vector<Token> Compiler::tokenize()

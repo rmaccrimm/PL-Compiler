@@ -15,12 +15,15 @@ class Compiler
 {
 public:
     // Constructor takes the filepath of the PL source file to be compiled
-    Compiler(std::ifstream &input_file);
+    Compiler(std::ifstream &input_file, bool print = false);
 
     // start compilation, the main function for Compiler class
     bool run();
 
+    void emit(std::string instr, std::vector<int> args = {});
 private:
+    bool print;
+
     /* Perform tokenization on the input file. Return false if errors are detected, true otherwise. 
         When an error is detected, the rest of the line is ignored. After 10 errors, scanning is 
         aborted. 
@@ -28,6 +31,8 @@ private:
         The result is stored in the given vector.
     */
     int scan(std::vector<Token> &scanner_output);
+
+    
 
     SymbolTable sym_table;
     Scanner scanner;

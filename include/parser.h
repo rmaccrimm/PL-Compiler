@@ -10,6 +10,11 @@
 #include <stack>
 #include <stdexcept>
 
+class Compiler 
+{
+public:
+    void emit(std::string s, std::vector<int> args = {});
+};
 
 class eof_error: public std::runtime_error
 {
@@ -22,7 +27,7 @@ class Parser
 {
 public:
     // Construct a parser to verify the given input represents a syntactically correct PL program
-    Parser();
+    Parser(Compiler * const c);
 
     /*  Parse input and verify it can be derived from the PL language grammar.
         Returns the number of errors found, 0 on success.
@@ -30,6 +35,8 @@ public:
     int verify_syntax(std::vector<Token> *input_tokens);
 
 private:
+    Compiler * const compiler;
+
     // Nonterminal follow sets
     std::map<std::string, std::set<Symbol>> follow;
 
@@ -49,7 +56,6 @@ private:
 
     // Code generations functions
     int new_label();
-    void emit(std::string instr, std::vector<int> args = {});
 
     // Move to next character in input. Throw eof_error if EOF reached
     void read_next();
