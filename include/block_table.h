@@ -28,7 +28,7 @@ struct BlockData
     int size;
     bool constant;
     int displacement; // used for variable access
-    int var_start;
+    int start_addr;
     bool array;
     int value; // used for constant instructions
     int level;

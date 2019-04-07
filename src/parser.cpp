@@ -139,7 +139,8 @@ void Parser::define_var(
     int value,
     bool constant,
     bool array,
-    int displacement // number of words relative to start of block - starts at 3 
+    int displacement, // number of words relative to start of block - starts at 3 
+    int start_addr
     ) {
     BlockData b;
     b.type = type;
@@ -148,7 +149,7 @@ void Parser::define_var(
     b.constant = constant;
     b.array = array;
     b.displacement = displacement;
-    b.var_start = 0; // Used for procedures maybe?
+    b.start_addr = start_addr; 
     try {
         block_table.insert(id, b);
         // DEBUG
@@ -255,7 +256,8 @@ void Parser::constant_definition()
         value,  // value
         true,   // constant
         false,  // array
-        0       // displacement
+        0,      // displacement - doesn't apply to constants
+        0       // start_addr, for procedures, doesn't apply to constants
     );
 }
 
@@ -301,7 +303,8 @@ int Parser::variable_definition_type(PLType varlist_type, int &offset)
             0,              // value
             false,          // constant
             arr,            // array
-            offset          // displacement
+            offset,         // displacement
+            0               // start_addr - for procedures, doesn't apply to vars 
         );
         offset += size;
         len += size;
@@ -372,10 +375,11 @@ void Parser::procedure_definition()
         id,                 // identifier
         PLType::PROCEDURE,  // type
         0,                  // size
+        0,                  // value
         false,              // constant
         false,              // array
         0,                  // displacement - doesn't apply to procedures
-        proc_label          // start_addr 
+        start_label         // start_addr 
     );
 
     block_table.push_new();
@@ -582,7 +586,7 @@ void Parser::procedure_statement()
         if (!equals(data.type, PLType::PROCEDURE)) {
             type_error("Cannot call a non procedure type");
         }
-        emit("CALL", {block_table.curr_level - data.level, data.var_start});
+        emit("CALL", {block_table.curr_level - data.level, data.start_addr});
     }
     catch (const scope_error &e) {
         error_preamble();

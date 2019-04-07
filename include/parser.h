@@ -71,8 +71,8 @@ private:
         int value,
         bool constant,
         bool array,
-        int displacement = 0 // TODO - these params
-        // int var_start = 0
+        int displacement,
+        int start_addr
     );
 
     // Types of error messages
