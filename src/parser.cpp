@@ -465,8 +465,7 @@ void Parser::read_statement()
             }
         }
         catch (const scope_error &e) {
-            error_preamble();
-            cerr << e.what() << endl;
+            // Error messages already issued in variable_access            
         }
     }
 }
@@ -568,8 +567,7 @@ void Parser::assignment_statement()
                 }
             }
             catch (const scope_error &e) {
-                error_preamble();
-                cerr << e.what() << endl;
+                // These errors will have already been issued in variable_access
             }
         }
     }
@@ -716,13 +714,13 @@ PLType Parser::primary_expression_end(PLType lhs_type)
     std::string nonterm = "primary_expression_end";
     auto s = next_token->symbol;
     if (s == LESS_THAN || s == GREATER_THAN || s == EQUALS) {
+        relational_operator();
+        auto rhs_type = primary_expression();
         switch (s) {
             case LESS_THAN: emit("LESS"); break;
             case GREATER_THAN: emit("GREATER"); break;
             case EQUALS: emit("EQUAL"); break;
         }
-        relational_operator();
-        auto rhs_type = primary_expression();
         if (!(equals(lhs_type, PLType::INTEGER) && equals(PLType::INTEGER, rhs_type))) {
             type_error("Both operands of a comparison must be integers");
             return PLType::UNDEFINED;
@@ -758,6 +756,7 @@ PLType Parser::simple_expression()
     if (s == SUBTRACT) {
         match(s, nonterm);
         auto lhs_type = term();
+        emit("MINUS");
         if (!equals(lhs_type, PLType::INTEGER)) {
             type_error("Cannot negate a non integer value");
             lhs_type = PLType::UNDEFINED;
@@ -899,9 +898,9 @@ PLType Parser::factor()
         return type;
     }
     else if (s == NOT) {
-        emit("NOT");
         match(s, nonterm);
         auto type = factor();
+        emit("NOT");
         if (!equals(type, PLType::BOOLEAN)) {
             type_error("Cannot take logical inverse of a non Boolean expression");
             return PLType::UNDEFINED;
@@ -923,12 +922,10 @@ std::string Parser::variable_access()
     try {
         auto data = block_table.find(id);
         emit("VARIABLE", {block_table.curr_level - data.level, data.displacement});
-        if (data.array) {
-            emit("INDEX", {data.size, line});
-        }
     }
     catch (const scope_error &e) {
-        // Don't do anything because this error will be found later in var_list (?)
+        error_preamble();
+        cerr << e.what() << endl;
     }
     variable_access_end();
     return id;
@@ -952,8 +949,18 @@ void Parser::variable_access_end()
 void Parser::indexed_selector()
 {
     std::string nonterm = "indexed_selector";
+    // Last matched id before the [] was the array identifier
+    auto id = matched_id.lexeme;
     match(LEFT_BRACKET, nonterm);
     auto ind_type = expression();
+    try {
+        BlockData data = block_table.find(id);
+        emit("INDEX", {data.size, line});
+    }
+    catch (const scope_error &e) {
+        // This error message will have been issued already by variable_access
+    }
+    
     if (!equals(ind_type, PLType::INTEGER)) {
         error_preamble();
         std::cout << "Array index must be integer type" << std::endl;

@@ -50,5 +50,5 @@ int main(int argc, char *argv[])
     */
     std::vector<Token> tokens;
     Compiler compiler(file_in);
-    compiler.run();
+    return !compiler.run();
 }
