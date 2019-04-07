@@ -27,10 +27,10 @@ struct BlockData
     PLType type;
     int size;
     bool constant;
-    int displacement;
+    int displacement; // used for variable access
     int var_start;
     bool array;
-    int value;
+    int value; // used for constant instructions
     int level;
 };
 

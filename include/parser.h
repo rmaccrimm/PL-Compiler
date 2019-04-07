@@ -94,13 +94,14 @@ private:
         Reference parameters in functions are used to return additional values
     */
     void program();
-    void block(int lvar, int lstart);
+    // Labels for storing size of vars, and first instruction address
+    void block(int var_label, int start_label);
     // Return length needed to store all variables - not sure how procs work yet
     int definition_part(int first_var_start);
     // Return length needed for vars defined 
     int definition(int &offset);
 
-    void constant_definition(int offset);
+    void constant_definition();
     int variable_definition(int &offset);
 
     int variable_definition_type(PLType varlist_type, int &var_start);

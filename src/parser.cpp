@@ -45,10 +45,11 @@ int Parser::new_label()
 void Parser::emit(std::string instr, std::vector<int> args)
 {
     if (PRINT) {
-        cout << instr << endl;
+        cout << instr << ' ';
         for (auto a: args) {
-            cout << a << endl;
+            cout << a << ' ';
         }
+        cout << endl;
     }
 }
 
@@ -147,12 +148,12 @@ void Parser::define_var(
     b.constant = constant;
     b.array = array;
     b.displacement = displacement;
-    b.var_start = 0; // I think this one is useless
+    b.var_start = 0; // Used for procedures maybe?
     try {
         block_table.insert(id, b);
         // DEBUG
-        cout << "---\ndefine " << id << "\nsize: " << size << "\nvalue: " << value << "\noffset: "
-             << displacement << endl;
+        // cout << "---\ndefine " << id << "\nsize: " << size << "\nvalue: " << value << "\noffset: "
+        //      << displacement << endl;
     }
     catch (const scope_error &e) {
         error_preamble();
@@ -164,10 +165,11 @@ void Parser::define_var(
 void Parser::program()
 {
     std::string nonterm = "program";
-    int lvar = new_label(), lstart = new_label();
-    emit("PROG", {lvar, lstart});
+    int var_label = new_label();
+    int start_label = new_label();
+    emit("PROG", {var_label, start_label});
     block_table.push_new();
-    block(lvar, lstart);
+    block(var_label, start_label);
     block_table.pop();
     match(PERIOD, nonterm);
     emit("ENDPROG");
@@ -181,14 +183,14 @@ void Parser::program()
 }
 
 
-void Parser::block(int lvar, int lstor)
+void Parser::block(int var_label, int start_label)
 {
     std::string nonterm = "block";
     match(BEGIN, nonterm);
     // Vars start at offset 3, following static link, dynamic link, and return address
     int var_len = definition_part(3);
-    emit("DEFARG", {lvar, var_len});
-    emit("DEFADDR", {lstor});
+    emit("DEFARG", {var_label, var_len});
+    emit("DEFADDR", {start_label});
     statement_part();
     match(END, nonterm);
 }
@@ -218,18 +220,17 @@ int Parser::definition(int &offset)
     std::string nonterm = "definition";
     auto s = next_token->symbol;
     if (s == CONST) {
-        constant_definition(offset);
-        offset++;
-        return 1;
+        // Constants don't get space allocated in activation record, so don't have displacement
+        constant_definition();
+        return 0;
     }
     else if (s == INT || s == BOOL) {
         return variable_definition(offset);
     }
     else if (s == PROC) {
-        // TODO - this is not right yet
-        offset++;
+        // Procs not included as a variable, sizes is handled by a label
         procedure_definition();
-        return 1;
+        return 0;
     }
     else {
         syntax_error(nonterm);
@@ -238,7 +239,7 @@ int Parser::definition(int &offset)
 }
 
 
-void Parser::constant_definition(int offset)
+void Parser::constant_definition()
 {
     std::string nonterm = "constant_definition";
     match(CONST, nonterm);    
@@ -254,7 +255,7 @@ void Parser::constant_definition(int offset)
         value,  // value
         true,   // constant
         false,  // array
-        offset  // displacement
+        0       // displacement
     );
 }
 
@@ -360,13 +361,27 @@ void Parser::procedure_definition()
     match(PROC, nonterm);    
     match(IDENTIFIER, nonterm);
     auto id = matched_id.lexeme;
-    int lproc = new_label();
-    define_var(id, PLType::PROCEDURE, 1, false, 0, lproc);
-    int lvar = new_label(), lstart = new_label();
+
+    // Label for the start of the procedure
+    int proc_label = new_label();
+    // Label for the size of the variables in the procedure
+    int var_label = new_label();
+    // Label for the first instruction address of the procedure
+    int start_label = new_label();
+    define_var(
+        id,                 // identifier
+        PLType::PROCEDURE,  // type
+        0,                  // size
+        false,              // constant
+        false,              // array
+        0,                  // displacement - doesn't apply to procedures
+        proc_label          // start_addr 
+    );
+
     block_table.push_new();
-    emit("DEFADDR", {lproc});
-    emit("PROC", {lvar, lstart});
-    block(lstart, lvar);
+    emit("DEFADDR", {proc_label});
+    emit("PROC", {var_label, start_label});
+    block(var_label, start_label);
     emit("ENDPROC");
     block_table.pop();
 } 
@@ -761,13 +776,13 @@ PLType Parser::simple_expression_end(PLType lhs_type)
     std::string nonterm = "simple_expression_end";
     auto s = next_token->symbol;
     if (s == ADD || s == SUBTRACT) {
-        emit((s == ADD ? "ADD" : "SUBTRACT"));
         adding_operator();
         auto rhs_type = term();
         if (!equals(lhs_type, PLType::INTEGER) || !equals(rhs_type, PLType::INTEGER)) {
             type_error("Both operands of addition type operator must be integers");
             lhs_type = PLType::UNDEFINED;
         }
+        emit((s == ADD ? "ADD" : "SUBTRACT"));
         return simple_expression_end(lhs_type);
     }
     // epsilon production 
@@ -804,13 +819,13 @@ PLType Parser::term_end(PLType lhs_type)
     std::string nonterm = "term_end";
     auto s = next_token->symbol;
     if (s == MULTIPLY || s == DIVIDE || s == MODULO) {
+        multiplying_operator();
+        auto rhs_type = factor();
         switch (s) {
             case MULTIPLY: emit("MULTIPLY"); break;
             case DIVIDE: emit("DIVIDE"); break;
             case MODULO: emit("MODULO"); break;
         }
-        multiplying_operator();
-        auto rhs_type = factor();
         if (!equals(lhs_type, PLType::INTEGER) || !equals(rhs_type, PLType::INTEGER)) {
             type_error("Both operands of multiplication type operators must be integers");
             lhs_type = PLType::UNDEFINED;
