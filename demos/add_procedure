@@ -1,0 +1,12 @@
+begin
+    integer x, y, z;
+    proc Add
+    begin
+        z := x + y;
+    end;
+    integer o;
+    read x, y;
+    call Add;
+    o := z;
+    write o;
+end.
