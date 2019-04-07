@@ -35,13 +35,14 @@ BlockData& BlockTable::find(std::string id)
     throw scope_error("Identifier " + id + " is undefined");
 }
 
-void BlockTable::insert(std::string id, PLType t, int s, bool c, int d, int v, bool a)
+void BlockTable::insert(std::string id, BlockData new_block)
 {
     assert(table.size() > 0);
     auto last = table.rbegin();
     if (last->find(id) != last->end()) {
         throw scope_error("Identifier " + id + " already defined in currents scope");
     }
-    BlockData data = {t, s, c, d, v, a, curr_level};
-    last->emplace(id, data);
+    // automatically set the level
+    new_block.level = curr_level;
+    last->emplace(id, new_block);
 }

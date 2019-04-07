@@ -64,7 +64,16 @@ private:
     void error_preamble();
 
     // Catch potential scope_errors 
-    void define_var(std::string id, PLType type, int size, bool constant, int d = 0, int v= 0, bool a = false);
+    void define_var(
+        std::string id,
+        PLType type,
+        int size,
+        int value,
+        bool constant,
+        bool array,
+        int displacement = 0, // TODO - these params
+        int var_start = 0
+    );
 
     // Types of error messages
     void type_error(std::string err_mgs);

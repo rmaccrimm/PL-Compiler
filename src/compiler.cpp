@@ -14,12 +14,12 @@ bool Compiler::run()
     if (scan(input_stream)) {
         return false;
     }
-    std::cout << "Scan completed without errors" << std::endl;
+    std::cerr << "Scan completed without errors" << std::endl;
     if (parser.verify_syntax(&input_stream)) {
-        std::cout << "Parsing completed with errors" << std::endl;
+        std::cerr << "Parsing completed with errors" << std::endl;
         return false;
     }
-    std::cout << "Parsing completed without errors" << std::endl;
+    std::cerr << "Parsing completed without errors" << std::endl;
     return true;
 }
 

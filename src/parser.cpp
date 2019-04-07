@@ -132,9 +132,27 @@ void Parser::check_follow(std::string nonterminal)
 
 
 void Parser::define_var(
-    std::string id, PLType type, int size, bool constant, int displacement, int var_start, bool arr) {
+    std::string id,
+    PLType type,
+    int size,
+    int value,
+    bool constant,
+    bool array,
+    int displacement, // TODO - these params
+    int var_start    
+    ) {
+    BlockData b;
+    b.type = type;
+    b.size = size;
+    b.value = value;
+    b.constant = constant;
+    b.array = array;
+    b.displacement = displacement;
+    b.var_start = var_start;
     try {
-        block_table.insert(id, type, size, constant, displacement, var_start, arr);
+        block_table.insert(id, b);
+        // DEBUG
+        // cout << "---\ndefine " << id << "\nsize: " << size << "\nvalue: " << value << "\n---\n";
     }
     catch (const scope_error &e) {
         error_preamble();
@@ -227,7 +245,7 @@ void Parser::constant_definition()
     match(EQUALS, nonterm);
     int value;
     auto type = constant(value);
-    define_var(id, type, 1, true);
+    define_var(id, type, 1, value, true, false);
 }
 
 
@@ -265,7 +283,7 @@ int Parser::variable_definition_type(PLType varlist_type, int &var_start)
     }
     int len = 0;
     for (auto &id: vars) {
-        define_var(id, varlist_type, size, false, 0, var_start++, arr);
+        define_var(id, varlist_type, size, 0, false, 0, var_start++, arr);
         len += size;
     }
     return len;
@@ -924,13 +942,13 @@ PLType Parser::constant(int &value)
         auto id = next_token->lexeme;
         match(s, nonterm);
         try {
-            BlockData &data = block_table.find(id);
+            BlockData data = block_table.find(id);
             if (!data.constant) {
                 error_preamble();
                 cerr << "Found non-constant value where constant expected" << endl;
                 return PLType::UNDEFINED;
             }
-            value = data.size;
+            value = data.value;
             return data.type;
         }
         catch (const scope_error &e) {

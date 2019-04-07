@@ -30,6 +30,7 @@ struct BlockData
     int displacement;
     int var_start;
     bool array;
+    int value;
     int level;
 };
 
@@ -48,7 +49,16 @@ public:
     BlockData& find(std::string id);
 
     // If already exists in same block, throw scope_error
-    void insert(std::string id, PLType t, int s = 1, bool c = false, int d = 0, int vs = 0, bool a = false);
+    void insert(std::string id, BlockData new_block);
+    //     std::string id, 
+    //     PLType t, 
+    //     int size,
+    //     int value,
+    //     bool constant,
+    //     int displacement,
+    //     int start,
+    //     bool array
+    // );
 
     int curr_level;
 
