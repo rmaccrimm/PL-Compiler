@@ -25,7 +25,13 @@
 
 \section{Purpose}
 
-The purpose of this program, in its current state, is to perform the scanning and parsing stages of compilation for a single PL source file and perform syntax, scope and type error detection with simple error recovery. The input file is parsed into tokens, which are stored in a list for the parsing stage. When an invalid identifier, numeral or other character is detected, an error message is printed to the console along with the line in which the error occurred. The sequence of tokens is then passed to the parser, which verifies that the sequence is valid according to the language grammar (given at the end of this document). If a syntax error is encountered, a message containing the line on which the error occurred and the source of the error is printed and the parser then attempts to recover. Recovering works by skipping input terminals until a member of the follow set for the current non terminal is found. While parsing, the scope and type of all identifiers and expressions are deduced in order to ensure variables are not used before they are defined, not redefined, and that the types are compatible with the operations being done.
+The purpose of this program is to translate a program written in the project language (PL) to PL assembly (PLAM) code to be run by a PLAM interpreter, and to perform basic syntax and semantics checking and error recovery. This includes lexical analysis, which converts the input source file to a sequence of tokens, parsing, which verifies the program is valid according to the language grammar (given at the end of this document), and code generation, which outputs PLAM code. 
+
+\subsection{Error Handling}
+
+There are four main types of error detection which occur, and all aim to provide useful error messages as well as allow compilation to continue. The first type of error that may occurr is a lexical, or scanning, error which occurs when invalid symbols are found in the input. If these kinds of errors are found, compilation will not continue as the input file can not be converted to a sequence of tokens. Next are syntax errors. When these are encountered, the program attempts to recover by entering panic mode. During panic mode input symbols are skipped until a sequencing symbol is found (a member of the follow set for the current non terminal), from which point parsing resumes. If no such symbols are found, the program will eventually throw an end of file error and exit. 
+
+While parsing, the scope and type of all identifiers and expressions are deduced in order to ensure variables are not used before they are defined, not redefined within the same scope, and that the types are compatible with the operations being done. Only a single error of this type is produced per expression, so there are not redundant error messages being given for the same expression. Parsing otherwise continues as normal when these errors are encountered.
 
 \section{Design}
 
@@ -44,6 +50,10 @@ The purpose of this program, in its current state, is to perform the scanning an
     \item[] \textbf{PLType}
         \begin{itemize}
             \item[-] An enumeration type containing the valid "kinds" of variables that an identifier or expression can represent. These are Boolean variable, Boolean constant, integer variable, integer constant, procedure, and undefined. During parsing, the type of each identifier and literal are deduced to check for consistency.
+        \end{itemize}
+    \item[] \textbf{BlockData}
+        \begin{itemize}
+            \item[-] A data-only struct containing elements to be stored in Blocks in the BlockTable. Represent variables and include information about the size, type, value, and logical adresses of variables.
         \end{itemize}
 \end{itemize}
 
@@ -88,6 +98,8 @@ The purpose of this program, in its current state, is to perform the scanning an
     \end{itemize}
 
     \section{Limitations/Possible Extensions}
+
+        \subsection{Part IV}
 
         \subsection{Part III}
 

@@ -71,8 +71,8 @@ private:
         int value,
         bool constant,
         bool array,
-        int displacement = 0, // TODO - these params
-        int var_start = 0
+        int displacement = 0 // TODO - these params
+        // int var_start = 0
     );
 
     // Types of error messages
@@ -95,12 +95,14 @@ private:
     */
     void program();
     void block(int lvar, int lstart);
-    // Return length needed to store all variables
-    int definition_part();
+    // Return length needed to store all variables - not sure how procs work yet
+    int definition_part(int first_var_start);
     // Return length needed for vars defined 
-    int definition(int &var_start);
-    void constant_definition();
-    int variable_definition(int &var_start);
+    int definition(int &offset);
+
+    void constant_definition(int offset);
+    int variable_definition(int &offset);
+
     int variable_definition_type(PLType varlist_type, int &var_start);
     PLType type_symbol();
     void variable_list(std::vector<std::string> &var_list);

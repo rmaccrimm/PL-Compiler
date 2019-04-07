@@ -138,8 +138,7 @@ void Parser::define_var(
     int value,
     bool constant,
     bool array,
-    int displacement, // TODO - these params
-    int var_start    
+    int displacement // number of words relative to start of block - starts at 3 
     ) {
     BlockData b;
     b.type = type;
@@ -148,11 +147,12 @@ void Parser::define_var(
     b.constant = constant;
     b.array = array;
     b.displacement = displacement;
-    b.var_start = var_start;
+    b.var_start = 0; // I think this one is useless
     try {
         block_table.insert(id, b);
         // DEBUG
-        // cout << "---\ndefine " << id << "\nsize: " << size << "\nvalue: " << value << "\n---\n";
+        cout << "---\ndefine " << id << "\nsize: " << size << "\nvalue: " << value << "\noffset: "
+             << displacement << endl;
     }
     catch (const scope_error &e) {
         error_preamble();
@@ -185,7 +185,8 @@ void Parser::block(int lvar, int lstor)
 {
     std::string nonterm = "block";
     match(BEGIN, nonterm);
-    int var_len = definition_part();
+    // Vars start at offset 3, following static link, dynamic link, and return address
+    int var_len = definition_part(3);
     emit("DEFARG", {lvar, var_len});
     emit("DEFADDR", {lstor});
     statement_part();
@@ -193,16 +194,16 @@ void Parser::block(int lvar, int lstor)
 }
 
 
-int Parser::definition_part()
+int Parser::definition_part(int offset)
 {
     std::string nonterm = "definition_part";
     std::set<Symbol> first{CONST, INT, BOOL, PROC};
     auto s = next_token->symbol;
     if (sfind(first, s)) {
-        int nextvarstart = 3;
-        int len = definition(nextvarstart);
+        // Definition will update offset
+        int len = definition(offset);
         match(SEMICOLON, nonterm);        
-        return len + definition_part();
+        return len + definition_part(offset);
     }
     // epsilon production
     else {
@@ -212,20 +213,21 @@ int Parser::definition_part()
 }
 
 
-int Parser::definition(int &var_start)
+int Parser::definition(int &offset)
 {
     std::string nonterm = "definition";
     auto s = next_token->symbol;
     if (s == CONST) {
-        constant_definition();
-        var_start++;
+        constant_definition(offset);
+        offset++;
         return 1;
     }
     else if (s == INT || s == BOOL) {
-        return variable_definition(var_start);
+        return variable_definition(offset);
     }
     else if (s == PROC) {
-        var_start++;
+        // TODO - this is not right yet
+        offset++;
         procedure_definition();
         return 1;
     }
@@ -236,7 +238,7 @@ int Parser::definition(int &var_start)
 }
 
 
-void Parser::constant_definition()
+void Parser::constant_definition(int offset)
 {
     std::string nonterm = "constant_definition";
     match(CONST, nonterm);    
@@ -245,19 +247,27 @@ void Parser::constant_definition()
     match(EQUALS, nonterm);
     int value;
     auto type = constant(value);
-    define_var(id, type, 1, value, true, false);
+    define_var(
+        id,     // identifier
+        type,   // type
+        1,      // size
+        value,  // value
+        true,   // constant
+        false,  // array
+        offset  // displacement
+    );
 }
 
 
-int Parser::variable_definition(int &var_start)
+int Parser::variable_definition(int &offset)
 {
 	std::string nonterm = "variable_definition";
     auto type = type_symbol();
-    return variable_definition_type(type, var_start);
+    return variable_definition_type(type, offset);
 }
 
 
-int Parser::variable_definition_type(PLType varlist_type, int &var_start)
+int Parser::variable_definition_type(PLType varlist_type, int &offset)
 {
     std::string nonterm = "variable_definition_type";
     std::vector<std::string> vars;
@@ -283,7 +293,16 @@ int Parser::variable_definition_type(PLType varlist_type, int &var_start)
     }
     int len = 0;
     for (auto &id: vars) {
-        define_var(id, varlist_type, size, 0, false, 0, var_start++, arr);
+        define_var(
+            id,             // id
+            varlist_type,   // type
+            size,           // size
+            0,              // value
+            false,          // constant
+            arr,            // array
+            offset          // displacement
+        );
+        offset += size;
         len += size;
     }
     return len;
