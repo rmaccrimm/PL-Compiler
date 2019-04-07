@@ -22,6 +22,7 @@ void BlockTable::pop()
 {
     assert(table.size() > 0);
     table.erase(table.end() - 1);
+    curr_level--;
 }
 
 BlockData& BlockTable::find(std::string id) 
