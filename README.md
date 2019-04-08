@@ -1,7 +1,7 @@
 # CPSC 4600 Project Language (PL) Compiler
 Roderick MacCrimmon (single person group, responsible for whole project)
 
-Estimated time spent on project: 10-15 hours for part 1 (scanner), 10 for part 2 (parser), 15-20 for part 3, 10-15 for part 4
+Estimated time spent on project: 10-15 hours for part 1 (scanner), 10 for part 2 (parser), 15-20 for part 3 (type and scope checking), 10-15 for part 4 (code generation)
 
 ## Files & Directory Layout
 (excluding CMake build files)
