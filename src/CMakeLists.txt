@@ -1,10 +1,10 @@
 include_directories(${PROJECT_SOURCE_DIR}/include)
-add_executable(plc 
-    main.cpp 
+add_executable(plc     
     symbol_table.cpp
     token.cpp
     scanner.cpp
-    compiler.cpp
     block_table.cpp
     parser.cpp
+    compiler.cpp
+    main.cpp 
 )

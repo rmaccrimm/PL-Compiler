@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "symbol.h"
 #include <iostream>
 #include <cassert>
 #include <set>
@@ -13,13 +14,14 @@ using std::endl;
 bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
 
 
-Parser::Parser(): line{1}, num_errors{0}, label_num{1}
+Parser::Parser(bool debug):
+    line{1}, num_errors{0}, label_num{1}, output{output}, debug_mode{debug}
 {
     init_symbol_sets();
 }
 
 
-int Parser::verify_syntax(std::vector<Token> *input_tokens)
+int Parser::verify_syntax(std::vector<Token> *input_tokens, std::string &output_prog)
 {
     num_errors = 0;
     line = 1;
@@ -32,6 +34,7 @@ int Parser::verify_syntax(std::vector<Token> *input_tokens)
         error_preamble();
         cerr << e.what() << endl;
     }
+    output_prog = output;
     return num_errors;
 }
 
@@ -44,12 +47,18 @@ int Parser::new_label()
 
 void Parser::emit(std::string instr, std::vector<int> args)
 {
-    if (PRINT) {
+    output +=  instr + ' ';
+    for (auto a: args) {
+        output += std::to_string(a) + ' ';
+    }
+    output += '\n';
+
+    if (debug_mode) {
         cout << instr << ' ';
         for (auto a: args) {
             cout << a << ' ';
         }
-        cout << endl;
+        cout << endl;        
     }
 }
 

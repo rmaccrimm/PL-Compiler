@@ -5,22 +5,29 @@
 #include <vector>
 #include <algorithm>
 
-Compiler::Compiler(std::ifstream &input_file) : 
-    scanner(input_file, sym_table), current_line{1}, error_count{0}, MAX_ERRORS{10} {}
+Compiler::Compiler(std::ifstream &input_file, std::ofstream &output_file, bool debug) : 
+    scanner(input_file, sym_table), 
+    parser(debug),
+    output{output_file},
+    current_line{1}, 
+    error_count{0}, 
+    MAX_ERRORS{10} {}
 
 bool Compiler::run()
 {
-    std::vector<Token> input_stream;    
-    if (scan(input_stream)) {
-        return false;
+    std::vector<Token> input_tokens;    
+    if (scan(input_tokens)) {
+        return true;
     }
-    std::cerr << "Scan completed without errors" << std::endl;
-    if (parser.verify_syntax(&input_stream)) {
-        std::cerr << "Parsing completed with errors" << std::endl;
-        return false;
+    std::cout << "Scan completed without errors" << std::endl;
+    std::string plam_prog;
+    if (parser.verify_syntax(&input_tokens, plam_prog)) {
+        std::cout << "Parsing completed with errors - no output written" << std::endl;
+        return true;
     }
-    std::cerr << "Parsing completed without errors" << std::endl;
-    return true;
+    std::cout << "Parsing completed without errors" << std::endl;
+    output << plam_prog;
+    return false;
 }
 
 int Compiler::scan(std::vector<Token> &scanner_output)

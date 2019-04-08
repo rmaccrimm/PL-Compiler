@@ -5,9 +5,9 @@
 #include "block_table.h"
 #include <vector>
 #include <string>
+#include <fstream>
 #include <map>
 #include <set>
-#include <stack>
 #include <stdexcept>
 
 
@@ -22,12 +22,12 @@ class Parser
 {
 public:
     // Construct a parser to verify the given input represents a syntactically correct PL program
-    Parser();
+    Parser(bool debug=false);
 
     /*  Parse input and verify it can be derived from the PL language grammar.
         Returns the number of errors found, 0 on success.
     */
-    int verify_syntax(std::vector<Token> *input_tokens);
+    int verify_syntax(std::vector<Token> *input_tokens, std::string &output_program);
 
 private:
     // Nonterminal follow sets
@@ -46,6 +46,8 @@ private:
     int line;
     int label_num;
 
+    std::string output;
+    bool debug_mode;
 
     // Code generations functions
     int new_label();

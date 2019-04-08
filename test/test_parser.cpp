@@ -18,13 +18,15 @@ std::vector<Token> read_file(std::string fname) {
     return tok_list;
 }
 
+std::ofstream fout("a.out");
 Parser P;
+std::string out;
 
 void run_test(std::string fname, int nerrors) 
 {
     std::cout << fname << std::endl;
     std::vector<Token> tlist = read_file(fname);
-    REQUIRE(P.verify_syntax(&tlist) == nerrors);
+    REQUIRE(P.verify_syntax(&tlist, out) == nerrors);
     std::cout << std::endl;
 }
 
