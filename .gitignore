@@ -1,4 +1,5 @@
 /build/
 /.vscode/
 /scratch/
+/submission/
 *.out
