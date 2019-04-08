@@ -34,6 +34,7 @@ int Parser::verify_syntax(std::vector<Token> *input_tokens, std::string &output_
         error_preamble();
         cerr << e.what() << endl;
     }
+    // Pass the resulting program back out to caller to be written to file
     output_prog = output;
     return num_errors;
 }
@@ -52,7 +53,7 @@ void Parser::emit(std::string instr, std::vector<int> args)
         output += std::to_string(a) + ' ';
     }
     output += '\n';
-
+    // Output to command line as well
     if (debug_mode) {
         cout << instr << ' ';
         for (auto a: args) {
@@ -141,16 +142,8 @@ void Parser::check_follow(std::string nonterminal)
 }
 
 
-void Parser::define_var(
-    std::string id,
-    PLType type,
-    int size,
-    int value,
-    bool constant,
-    bool array,
-    int displacement, // number of words relative to start of block - starts at 3 
-    int start_addr
-    ) {
+void Parser::define_var(std::string id, PLType type, int size, int value, bool constant, bool array, 
+                        int displacement, int start_addr) {
     BlockData b;
     b.type = type;
     b.size = size;
@@ -161,9 +154,6 @@ void Parser::define_var(
     b.start_addr = start_addr; 
     try {
         block_table.insert(id, b);
-        // DEBUG
-        // cout << "---\ndefine " << id << "\nsize: " << size << "\nvalue: " << value << "\noffset: "
-        //      << displacement << endl;
     }
     catch (const scope_error &e) {
         error_preamble();
@@ -183,7 +173,7 @@ void Parser::program()
     block_table.pop();
     match(PERIOD, nonterm);
     emit("ENDPROG");
-    // Matching an eof token would normally produce an error message, so handle in special case here
+    // Matching an eof token would normally produce an error, so handle in special case here
     if (next_token->symbol != END_OF_FILE) {
         num_errors++;
         std::cout << "Error " << num_errors << " on line " << line << ": Expected " 
@@ -235,10 +225,11 @@ int Parser::definition(int &offset)
         return 0;
     }
     else if (s == INT || s == BOOL) {
+        // Get size of variable and update offset
         return variable_definition(offset);
     }
     else if (s == PROC) {
-        // Procs not included as a variable, sizes is handled by a label
+        // Procs also not counted as a variable, sizes is handled by a label
         procedure_definition();
         return 0;
     }
@@ -286,6 +277,7 @@ int Parser::variable_definition_type(PLType varlist_type, int &offset)
     int size = 1;
     auto s = next_token->symbol;
     bool arr = false;
+
     if (s == IDENTIFIER) {
         variable_list(vars);
     }
@@ -294,6 +286,7 @@ int Parser::variable_definition_type(PLType varlist_type, int &offset)
         match(ARRAY, nonterm);
         variable_list(vars);
         match(LEFT_BRACKET, nonterm);
+        // Get size of the array from constant
         auto arr_size_type = constant(size);
         if (!equals(arr_size_type, PLType::INTEGER)) {
             type_error("Array bounds must be of type integer");
@@ -593,6 +586,7 @@ void Parser::procedure_statement()
         if (!equals(data.type, PLType::PROCEDURE)) {
             type_error("Cannot call a non procedure type");
         }
+        // CALL, relative level above current, first instruction of proc
         emit("CALL", {block_table.curr_level - data.level, data.start_addr});
     }
     catch (const scope_error &e) {
@@ -605,12 +599,13 @@ void Parser::procedure_statement()
 void Parser::if_statement()
 {
 	std::string nonterm = "if_statement";
-    int lstart = new_label(), ldone = new_label();
+    int start_label = new_label();
+    int done_label = new_label();
     match(IF, nonterm);
-    guarded_command_list(lstart, ldone);
-    emit("DEFADDR", {lstart});
+    guarded_command_list(start_label, done_label);
+    emit("DEFADDR", {start_label});
     emit("FI", {line});
-    emit("DEFADDR", {ldone});
+    emit("DEFADDR", {done_label});
     match(FI, nonterm);
 }
 
@@ -618,11 +613,12 @@ void Parser::if_statement()
 void Parser::do_statement()
 {
 	std::string nonterm = "do_statement";
-    int lstart = new_label(), lloop = new_label();
+    int start_label = new_label();
+    int loop_label = new_label();
     match(DO, nonterm);
-    emit("DEFADDR", {lloop});
-    guarded_command_list(lstart, lloop);
-    emit("DEFADDR", {lstart});
+    emit("DEFADDR", {loop_label});
+    guarded_command_list(start_label, loop_label);
+    emit("DEFADDR", {start_label});
     match(OD, nonterm);
 }
 
@@ -656,6 +652,7 @@ void Parser::guarded_command(int &start_label, int &goto_label)
     std::string nonterm = "guarded_command";
     emit("DEFADDR", {start_label});
     auto guard_type = expression();
+    // Create a new label for next guarded command
     start_label = new_label();
     emit("ARROW", {start_label});
     if (!equals(guard_type, PLType::BOOLEAN)) {
@@ -663,6 +660,7 @@ void Parser::guarded_command(int &start_label, int &goto_label)
     }
     match(RIGHT_ARROW, nonterm);
     statement_part();
+    // Jump to the end of the construct
     emit("BAR", {goto_label});
 }
 

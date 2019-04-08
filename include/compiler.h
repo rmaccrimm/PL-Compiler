@@ -8,16 +8,17 @@
 #include "symbol_table.h"
 
 /*  An administration class that manages each of the separate compilation stages. Responsible for
-    creating storing, and calling methods for each of the seperate classes. Currnetly only  
-    scanning is implemented
+    creating storing, and calling methods for each of the seperate classes and writing final output
 */
 class Compiler
 {
 public:
-    // Constructor takes the filepath of the PL source file to be compiled
+    /*  Constructor takes the filepath of the PL source file to be compiled, the output file, and 
+        a flag indicating debug mode
+    */
     Compiler(std::ifstream &input_file, std::ofstream &output_file, bool debug=false);
 
-    // Return true if errors occurred
+    // Compile program. Returns true if errors occurred
     bool run();
 
 private:
