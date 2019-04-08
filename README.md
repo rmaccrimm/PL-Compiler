@@ -38,7 +38,7 @@ Estimated time spent on project: 10-15 hours for part 1 (scanner), 10 for part 2
     - grammar.txt
     - technical_doc.tex
   - **interpreter/** - Not my own work - contains the assembler and interpreter source code
-    provided with minor revisions
+    provided on Moodle with minor revisions
   - **demos/** - example programs written in PL, code contains comments explaining purpose
     - add_procedure.txt
     - algebra.txt
