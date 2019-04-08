@@ -15,7 +15,7 @@ bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
 
 
 Parser::Parser(bool debug):
-    line{1}, num_errors{0}, label_num{1}, debug_mode{debug}
+    line(1), num_errors(0), label_num(1), debug_mode(debug)
 {
     init_symbol_sets();
 }
