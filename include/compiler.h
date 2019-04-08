@@ -35,7 +35,7 @@ private:
 
     int current_line;
     int error_count;
-    const int MAX_ERRORS;
+    const int MAX_ERRORS = 10;
 
     // Construct the token list for input using. 
     std::vector<Token> tokenize();

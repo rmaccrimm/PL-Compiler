@@ -5,13 +5,13 @@
 #include <vector>
 #include <algorithm>
 
+
 Compiler::Compiler(std::ifstream &input_file, std::ofstream &output_file, bool debug) : 
     scanner(input_file, sym_table), 
     parser(debug),
     output{output_file},
     current_line{1}, 
-    error_count{0}, 
-    MAX_ERRORS{10} {}
+    error_count{0} {}
 
 bool Compiler::run()
 {
