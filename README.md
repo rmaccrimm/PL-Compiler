@@ -1,7 +1,7 @@
 # CPSC 4600 Project Language (PL) Compiler
 Roderick MacCrimmon (single person group, responsible for whole project)
 
-Estimated time spent on project: 10-15 hours for part 1 (scanner), 10 for part 2 (parser), 15-20 for part 3
+Estimated time spent on project: 10-15 hours for part 1 (scanner), 10 for part 2 (parser), 15-20 for part 3, 10-15 for part 4
 
 ## Files & Directory Layout
 (excluding CMake build files)
@@ -10,6 +10,7 @@ Estimated time spent on project: 10-15 hours for part 1 (scanner), 10 for part 2
   - README.md
   - technical_doc.pdf
   - **include/** - header files
+    - block_table.h
     - compiler.h
     - parser.h
     - scanner.h
@@ -17,25 +18,34 @@ Estimated time spent on project: 10-15 hours for part 1 (scanner), 10 for part 2
     - symbol.h
     - token.h
   - **src/** - implementation files
-    - main.cpp - contains main function for plc
-    - parser.cpp
+    - block_table.cpp        
     - compiler.cpp
+    - main.cpp 
+    - parser.cpp
     - scanner.cpp
     - symbol_table.cpp
     - token.cpp
   - **test/**
     - catch.hpp - CATCH2 unit testing library header
     - main.cpp - defines main needed for running unit tests
-    - test_scanner.cpp - unit tests
-    - **src_files/** - PL source code used for testing
-      - valid_test_program.pl
-      - **scan** - subdirectories contain files used by unit tests
+    - test_scanner.cpp 
+    - test_parser.cpp
+    - **src_files/** - PL source code used for testing, subdirectories contain files used by unit tests
+      - **scan** - 
       - **scope**
       - **type**
   - **docs/**
     - grammar.txt
     - technical_doc.tex
-    - pl_grammar.tex
+  - **demos/** - example programs written in PL, code contains comments explaining purpose
+    - add_procedure.txt
+    - algebra.txt
+    - boolean.txt
+    - bubble_sort.txt
+    - comparisonst.txt
+    - Fibonacci_numbers.txt
+    - recursion.txt
+    - reverse_list.txt
 
 ## Build Instructions
 This project uses CMake to automatically generate makefiles. It has been tested to ensure it builds
@@ -48,20 +58,23 @@ cd build
 cmake ..
 make
 ```
-This will produce two separate executables - one for the main compiler at build/src/plc, and a 
-second for the automated unit tests at build/test/run_tests
+This will produce three separate executables:
+  - build/src/plc - compiler
+  - build/test/run_tests - automatic unit tests
+  - build/interpreter/plinterp - interpreter
 
 ## Usage Instructions
 The compiler can be run with
 ```
-./plc src_file 
+./plc src-file [-o output-file] [-d]
 ```
+The -o flag is used to specify the output file, which will otherwise be a.out by default.
 
-One valid test program is provided to see parser output at test/src_files/valid_test_program.pl. The
-program has been confirmed to run correctly for this file on the lab computers.
+The -d flag enables debug mode, which will print the resulting intermediate code to the command
+line, as well as to the output file. Note that if errors occurr, no output will be written to file.
 
-The scanner unit tests can be run from the project root directory with
+The output file can then be passed as the input for the interpreter, which will produce an output 
+file called assembly.out and load and run this file with the interpreter
 ```
-./build/test/run_tests
+./plinter input-file
 ```
-Because the input filepaths are currently hard-coded, this must be run from the project root directory.
