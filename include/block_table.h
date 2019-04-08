@@ -1,5 +1,5 @@
-#ifndef BLOCK_TABLE_H
-#define BLOCK_TABLE_H
+#ifndef PL_BLOCK_TABLE_H
+#define PL_BLOCK_TABLE_H
 
 #include <stdexcept>
 #include <map>

@@ -1,5 +1,5 @@
-#ifndef SCANNER_SYMBOL_TABLE_H
-#define SCANNER_SYMBOL_TABLE_H
+#ifndef PL_SYMBOL_TABLE_H
+#define PL_SYMBOL_TABLE_H
 
 #include "token.h"
 #include <vector>

@@ -1,5 +1,5 @@
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef PL_PARSER_H
+#define PL_PARSER_H
 
 #include "token.h"
 #include "block_table.h"

@@ -1,5 +1,5 @@
-#ifndef SCANNER_SYMBOL_H
-#define SCANNER_SYMBOL_H
+#ifndef PL_SYMBOL_H
+#define PL_SYMBOL_H
 
 #include <map>
 #include <string>

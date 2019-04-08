@@ -1,5 +1,5 @@
-#ifndef SCANNER_TOKEN_H
-#define SCANNER_TOKEN_H
+#ifndef PL_TOKEN_H
+#define PL_TOKEN_H
 
 #include "symbol.h"
 #include <string>
