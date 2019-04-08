@@ -1,0 +1,51 @@
+$ sort a list of numbers
+begin
+    const MAX_SIZE=100;
+    integer array A[MAX_SIZE];
+    Boolean increasing;
+    integer size, i;
+
+    proc sort
+    begin
+        integer i, j;
+        proc swap
+        begin
+            integer t;
+            t := A[i];
+            A[i], A[j] := A[j], t;
+        end; $ proc swap
+
+        i := 1;
+        do ~(i > size) ->
+            j := i;
+            do ~(j > size) ->
+                if increasing ->
+                    if A[i] > A[j] -> call swap;
+                    [] ~(A[i] > A[j]) -> skip;
+                    fi;
+                [] ~increasing ->
+                    if A[i] < A[j] -> call swap;
+                    [] ~(A[i] < A[j]) -> skip;
+                    fi;
+                fi;
+                j := j + 1;
+            od;
+            i := i + 1;
+        od;
+    end; $ proc sort
+
+    
+    read increasing; $ 1 for increasing order, 0 for decreasing
+    read size; 
+    i := 1;
+    do ~(i > size) -> $ read elemenets
+        read A[i]; 
+        i := i + 1;
+    od;
+    call sort;
+    i := 1;
+    do ~(i > size) -> $ print reversed list
+        write A[i]; 
+        i := i + 1;
+    od;
+end.

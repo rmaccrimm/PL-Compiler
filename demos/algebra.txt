@@ -1,0 +1,14 @@
+$ Try out all of the algrebraic operators
+begin
+    integer a, b, c, i, j;
+    a := 10;
+    b := 15;
+    c := 3;
+    write (a + b) \ 11 * c - (15 / 5 + b*c) / a * 2; $ Output: 1
+    write a * b + (c + 33) \ 6; $ Output: 150
+    i := 0;
+    j := 3;
+    do (i < 10) -> c := c * j; i := i + 1;
+    od;
+    write c; $ Output: 3^11 = 177147
+end.

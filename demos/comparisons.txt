@@ -1,0 +1,21 @@
+$ read value for x and output:
+$    2, x > 10
+$    1, 0 < x <= 10
+$    0, x = 0
+$   -1, -10 <= x < 0
+$   -2, x < -10    
+begin
+    integer x, r;
+    read x;
+    if x < 0 ->
+        if x < -10 -> r := -2;
+        [] ~(x < -10) -> r := -1;
+        fi;
+    [] x = 0 -> r := 0;
+    [] x > 0 ->
+        if x > 10 -> r := 2;
+        [] ~(x > 10) -> r := 1;
+        fi;
+    fi;
+    write r;
+end.

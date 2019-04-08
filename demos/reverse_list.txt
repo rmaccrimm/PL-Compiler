@@ -1,0 +1,33 @@
+$ Print a list in reverse order
+begin
+    const MAX_SIZE=100;
+    integer n, i;
+    integer array A[MAX_SIZE];
+
+    proc reverse
+    begin
+        integer i, j, t;
+        i := 1;
+        j := n;
+        do i < j ->
+            t := A[i];
+            A[i], A[j] := A[j], t;
+            i := i+1;
+            j := j-1;
+        od;
+    end;
+
+    read n; $ read size of list
+    i := 1;
+    do ~(i > n) -> $ read elemenets
+        read A[i]; 
+        i := i + 1;
+    od;
+
+    call reverse;
+    i := 1;
+    do ~(i > n) -> $ print reversed list
+        write A[i]; 
+        i := i + 1;
+    od;
+end.
