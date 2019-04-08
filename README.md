@@ -66,9 +66,11 @@ This will produce three separate executables:
 
 ## Usage Instructions
 The compiler can be run with
+
 ```
 ./plc src-file [-o output-file] [-d]
 ```
+
 The -o flag is used to specify the output file, which will otherwise be a.out by default.
 
 The -d flag enables debug mode, which will print the resulting intermediate code to the command
