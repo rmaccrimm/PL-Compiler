@@ -6,8 +6,8 @@ Estimated time spent on project: 10-15 hours for part 1 (scanner), 10 for part 2
 ## Files & Directory Layout
 (excluding CMake build files)
 
-  - README.pdf
   - README.md
+  - README.pdf
   - technical_doc.pdf
   - **include/** - header files
     - block_table.h
@@ -50,8 +50,7 @@ Estimated time spent on project: 10-15 hours for part 1 (scanner), 10 for part 2
     - reverse_list.txt
 
 ## Build Instructions
-This project uses CMake to automatically generate makefiles. It has been tested to ensure it builds
-on the linux lab computers without any compilation errors.
+This project uses CMake to automatically generate makefiles. It has been tested to ensure it builds on the linux lab computers without any compilation errors.
 
 From the project root directory run the following commands:
 ```
@@ -67,7 +66,7 @@ This will produce three separate executables:
 
 ## Usage Instructions
 The compiler can be run with
-```
+```p
 ./plc src-file [-o output-file] [-d]
 ```
 The -o flag is used to specify the output file, which will otherwise be a.out by default.
@@ -80,3 +79,5 @@ file called assembly.out and load and run this file with the interpreter
 ```
 ./plinterp input-file
 ```
+
+Note: All programs included in the demos directory and the unit tests have been confirmed prior to submission to run on the linux lab computers without any run-time errors.
