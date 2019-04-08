@@ -25,13 +25,23 @@
 
 \section{Purpose}
 
-The purpose of this program is to translate a program written in the project language (PL) to PL assembly (PLAM) code to be assembled by the provided assembler and then run on a PLAM interpreter, and to perform basic syntax and semantics checking and error recovery. This includes lexical analysis, which converts the input source file to a sequence of tokens, parsing, which verifies the program is valid according to the language grammar (given at the end of this document), and code generation, which outputs PLAM code. 
+The purpose of this program is to translate a program written in the project language (PL) to PL assembly (PLAM) code to be assembled by the provided assembler and then run on a PL machine code interpreter, and to perform basic syntax and semantics checking and error recovery. This includes lexical analysis, which converts the input source file to a sequence of tokens, parsing, which verifies the program is valid according to the language grammar (given at the end of this document), and code generation, which outputs PLAM code. There are four main types of error detection which occur, and all aim to provide useful error messages as well as allow compilation to continue.
 
-\subsection{Error Handling}
+\subsection{Lexical and Syntax Analysis}
 
-There are four main types of error detection which occur, and all aim to provide useful error messages as well as allow compilation to continue. The first type of error that may occurr is a lexical, or scanning, error which occurs when invalid symbols are found in the input. If these kinds of errors are found, compilation will not continue as the input file can not be converted to a sequence of tokens. Next are syntax errors. When these are encountered, the program attempts to recover by entering panic mode. During panic mode input symbols are skipped until a sequencing symbol is found (a member of the follow set for the current non terminal), from which point parsing resumes. If no such symbols are found, the program will eventually throw an end of file error and exit. 
+ During the lexical or scanning phase, the input program is converted into a sequence of tokens. If invalid or unrecognized characters are encountered in the input, an error message is produced and the rest of the line is ignored. If these kinds of errors are found, compilation will not continue as the input file can not be converted to valid tokens. 
+ 
+ In the parsing phase, syntax analysis ensures that the program is valid according to the language grammar. When errors are encountered, the program attempts to recover by entering panic mode. During panic mode input symbols are skipped until a sequencing symbol is found (a member of the follow set for the current non terminal), from which point parsing resumes. If no such symbols are found, the program will eventually throw an end of file error and exit. 
 
-While parsing, the scope and type of all identifiers and expressions are deduced in order to ensure variables are not used before they are defined, not redefined within the same scope, and that the types are compatible with the operations being done. Only a single error of this type is produced per expression, so there are not redundant error messages being given for the same expression. Parsing otherwise continues as normal when these errors are encountered.
+\subsection{Scope and Type Checking}
+
+Scope and type checking happens at the same time as syntax analysis. While parsing, the scope and type of all identifiers and expressions are deduced in order to ensure variables are not used before they are defined, not redefined within the same scope, and that the types are compatible with the operations being done. Only a single error of this type is produced per expression, so there are not redundant error messages being given for the same expression. An error message is printed, but parsing otherwise continues as normal when these errors are encountered.
+
+\subsection{Code generation}
+
+Code generation also happens during the parsing phase. In the nonterminal functions corresponding to variable accesses the VARIABLE instruction is emitted to push the address of a variable onto the stack. The arguments for this provide the level of the block in which the variable is located, relative to the current block, and the displacment - an offset from the start of the block to the location of the variable. The VALUE instruction can be used to replace this address with the value of the variable, and the COSTANT instruction places a constant on the stack. There are additional instructions corresponding to all of the operations in PL, which pop and/or push new values onto the stack.
+
+Absolute addressing is left to the asesmbler stage of compilation. During parsing the issue of addressing is handled by the use of unique labels, which indicate possible jump locations. When a new block or control flow statement is encountered, a label is generated. Once the whole construct has been parsed, the pseudo-instructions DEFARG and DEFADDR are used to establish the actual values for the labels.
 
 \section{Design}
 
@@ -49,50 +59,65 @@ While parsing, the scope and type of all identifiers and expressions are deduced
         \end{itemize} 
     \item[] \textbf{PLType}
         \begin{itemize}
-            \item[-] An enumeration type containing the valid "kinds" of variables that an identifier or expression can represent. These are Boolean variable, Boolean constant, integer variable, integer constant, procedure, and undefined. During parsing, the type of each identifier and literal are deduced to check for consistency.
+            \item[-] An enumeration type containing the valid types of variables that an identifier or expression can represent. These are Boolean, integer, procedure, and undefined. During parsing the type of each identifier and literal are deduced to check for consistency. 
+            \item[-] The undefined type is a universal type, and will compare equal to any other type. This prevents cascading errors such as assigning the result of an incorrect expression to a variable.
         \end{itemize}
     \item[] \textbf{BlockData}
         \begin{itemize}
-            \item[-] A data-only struct containing elements to be stored in Blocks in the BlockTable. Represent variables and include information about the size, type, value, and logical adresses of variables.
+            \item[-] A data-only struct containing elements to be stored in Blocks in the BlockTable. Represent variables and constants and  contains the following fields used for scope and type checking, and code generation
+            \item[-] \bf{size} - the space needed in memory for the variable, greater than 1 only for arrays
+            \item[-] \bf{constant} - flag indicating the identifier is a constant
+            \item[-] \bf{displacement} - offset from the start of the block to location in memory of variable
+            \item[-] \bf{start\_addr} - address of the first instruction for a procedure
+            \item[-] \bf{array} - flag indicating the identifier is an array
+            \item[-] \bf{value} - the value of the identifier, used for constants only
+            \item[-] \bf{level} - the block level in which the identifier was defined
         \end{itemize}
 \end{itemize}
 
 \subsection*{Classes}
 
     \begin{itemize}
-        \item[]\textbf{SymbolTable} 
+        \item[]\textbf{Compiler}
             \begin{itemize}
-                \item[-] A hash table used to store identifier tokens. The table is initialized with all reserved words tokens to provide an easy method of determining if a scanned word is reserved. The hash function used is  Contains a vector of c++ unique\_ptrs for creating new tokens (unique\_ptr used to avoid the need for explicit deletion) and the following operations:
-                \item[-] \textbf{contains}: check if an entry exists in the table for the given key
-                \item[-] \textbf{insert} insert a new element with they given key
-                \item[-] \textbf{get} retrieve the token with given key
-                \item[-] hashing is implemented by the private method \textbf{hash\_fn} which uses the djb2 hash function found online at http://www.cse.yorku.ca/~oz/hash.html. Uses linear probing to handle collisions
+                \item[-] The main "Administration" class which is responsible for creating, managing and using the other component objects. Currently stores scanner and symbol table objects. The constructor takes a reference to an input file stream object as input, which is used to create the scanner object. 
+                \item[-] \textbf{run}: Compiler's only public method. Uses the tokenize method to create a list of tokens using the scanner get\_token method. If scanning completes without errors, the token list is passed to the parser to be analyzed.
+                \item[-] \textbf{tokenize}: private method - uses the scanner object to construct a token list and detect invalid characters. When an error is encountered, an error message is produced and the rest of the line ignored. If any errors are encountered during this stage of compilation, parsing will not occur.
             \end{itemize}
 
         \item[]\textbf{Scanner}
             \begin{itemize}
                 \item[-] Performs the lexical analysis on the input program. The constructor takes a reference to an input file stream object as input, from which it will read the input program, and a reference to a symbol table object into which identifier tokens will be inserted. 
                 \item[-] \textbf{get\_token}: the only public method, which returns the next token in the input file until it reaches the end of the file. All subsequent calls will return an end of file token.
-                \item[-] contains a large number of private methods for parsing the input text. Anything that begins with a letter is considered a word and must follow the pattern letter (letter | \_ | digit$^*$). Anything beginning with a digit is considered a numeral and must follow the pattern (digit)$^+$. Other symbols are considered individually. 
+                \item[-] contains a number of private methods for parsing the input text. Anything that begins with a letter is considered a word and must follow the pattern letter (letter | \_ | digit$^*$). Anything beginning with a digit is considered a numeral and must follow the pattern (digit)$^+$. Other symbols are considered individually. 
                 \item[-]Tokens are also returned for invalid words, numerals and symbols and unrecognized characters. 
             \end{itemize}
 
         \item[]\textbf{Parser}
             \begin{itemize}
-                \item[-] Verifies the input token sequence represents a valid PL program by constructing the parse tree according to the PL language grammar. Also performs type and scope analysis, ensuring that variables are defined before used and not redefined, and that the types of variables (integer or Boolean) used in expressions are compatible.
-                \item[-] \textbf{verify\_syntax}: Only public method, parses the input sequence and returns the number of errors encountered. Uses predictive parsing with the recursive descent parsing technique. The class contains a private method corresponding to every non-terminal of the grammar, parsing is started by calling the program method. For a given production rule $A \longrightarrow B_1B_2B_3...$ the method for $A$ works by calling match($B_i$) if $B_i$ is a terminal symbol (token) or calling the method for $B_i$ if it is a non-terminal.
+                \item[-] Performs the bulk of the work of compilation, including syntax verification, scope and type checking, and PLAM code generation. Uses predictive parsing with the recursive descent parsing technique, leading to a structure that closely resembles the language grammar, with a function for every nonterminal.
+                \item[-] Parsing is started by calling the program method. For a given production rule $A \longrightarrow B_1B_2B_3...$ the method for $A$ works by calling match($B_i$) if $B_i$ is a terminal symbol (token) or calling the method for $B_i$ if it is a non-terminal.  
+                \item[-] \textbf{verify\_syntax}: Only public method, begins parsing the input sequence and returns the number of errors encountered. The string reference provided as input will be used to store the contents of the output PLAM code. 
                 \item[-] When multiple production rules are available, the correct one is chosen by checking if the lookahead token (next\_token) is contained in the rule's FIRST set. If the production derives the empty string, the FOLLOW set is checked instead.
                 \item[-] \textbf{match}: Checks that the lookahead token matches the expected terminal symbol and advances to the next token in the input.
-                \item[-] \textbf{synchronize}: Whenever a syntax error is encountered, the program utilizes a panic-mode error recovery strategy. This function consults the follow set of the non-terminal in which the error occurred, to find a point from which parsing is likely to be able to continue. Input tokens are ignored until something in the follow set is found. 
-                \item[-] When a syntax error occurs, an error message is printed containing the line and name of the problematic symbol. The point from which parsing continued following the synchronize method is also printed. Scope and type errors produce an error message, but parsing just continues as normal (often leading to many redundant error messages). 
-                \item[-] \textbf{Block table}: Scope and type checking make use of a block table, which is a stack containing "blocks" which are maps from identifiers to block data - the variable type and size. Every time a new block is entered (anywhere begin is found in the program) a new block is pushed onto the stack, and is intially a copy of the block preceding it. This makes all variables accessible within nested blocks (procedures), but not the other way around - variables defined within a procedure are not accessible outside it. This also means variables within a block cannot share a name with any variables in the outer scope.
+                \item[-] \textbf{synchronize}: Whenever a syntax error is encountered, the program utilizes a panic-mode error recovery strategy. This function consults the follow set of the non-terminal in which the error occurred, to find a point from which parsing is likely to be able to continue. Input tokens are ignored until something in the follow set is found.                 
+                \item[-] \textbf{emit}: Used to add an assembly instruction to the output program. Takes an instruction as a string and an optional list of arguments as a vector of integers. 
             \end{itemize}
 
-        \item[]\textbf{Compiler}
+        \item[]\textbf{SymbolTable} 
             \begin{itemize}
-                \item[-] The main "Administration" class which is responsible for creating, managing and using the other component objects. Currently stores scanner and symbol table objects. The constructor takes a reference to an input file stream object as input, which is used to create the scanner object. 
-                \item[-] \textbf{run}: Compiler's only public method. Uses the tokenize method to create a list of tokens using the scanner get\_token method. If scanning completes without errors, the token list is passed to the parser to be analyzed.
-                \item[-] \textbf{tokenize}: private method - uses the scanner object to construct a token list and detect invalid characters. When an error is encountered, an error message is produced and the rest of the line ignored. If any errors are encountered during this stage of compilation, parsing will not occur.
+                \item[-] A hash table used to store identifier tokens. The table is initialized with all reserved words tokens to provide an easy method of determining if a scanned word is reserved. Contains the following operations
+                \item[-] \textbf{contains}: check if an entry exists in the table for the given key
+                \item[-] \textbf{insert} insert a new element with they given key
+                \item[-] \textbf{get} retrieve the token with given key
+                \item[-] hashing is implemented by the private method \textbf{hash\_fn} which uses the djb2 hash function found online at http://www.cse.yorku.ca/~oz/hash.html. Uses linear probing to handle collisions
+            \end{itemize}
+
+        \item[]\textbf{BlockTable}
+            \begin{itemize}
+                \item[-] A stack containing blocks which are maps from identifiers to BlockData elements. Every time a new block is entered (anywhere begin is found in the program) a new block is pushed onto the stack. 
+                \item[-]When defining a new variable in the definition part, the current block on top of the block table is checked to ensure the variable has not already been defined in this scope. When accessing a variable, all blocks, beginning with the top and working down, are searched to determine if the variable/constnat has been defined.
+                \item[-]In an expression or statement, the types of each operand are looked up in the block table to ensure they are valid for the given operation, and equal to each other. 
             \end{itemize}
 
     \end{itemize}
@@ -101,11 +126,15 @@ While parsing, the scope and type of all identifiers and expressions are deduced
 
         \subsection{Part IV}
 
+        At this point the compiler implements all the expected behavior for the PL language has been implemented (excluding a couple limitations like identifier length and maximum block table size), but there are a number of extensions that could be made. Probably the most significant would be to introduce procedure parameters, as without them it is difficult to do anything useful with recursive procedure calls and functional programming is not really possible. This would be fairly straightforward to implement as well, using the negative displacement approach described in the Brinch Hansen book. The addition of a character type and character arrays would also greatly increase the usefulness of the language as currently there is no way to even output English messages. Other potential features could be a way of storing elements of different types, such as a tuple or struct, and floating point numbers. 
+
+        Beyond just language features, more work could be done on the assembly and code generation stages as well. Doing some analysis and optimization of the output assembly code could be worthwhile. It might also be interesting to attempt to translate to something more practical list x86 assembly or even C code, though this would probably require significant reworking of the parser since the virtual PL computer so closely resembles the PL language.
+
         \subsection{Part III}
 
         At this point the compiler seems to be fairly robust, in terms of handling any sort of input without crashing and producing relevant error messages. The error messages themselves are the main thing that could be improved, as they currently point to a line of the program and the general sort of error (mismatch between types, undefined variable) but they could be more specific in some cases and provide more information on the state of the system, such as deduced variable types, which specific variable within a comma separated l,list, etc. Additionally a lot of error messages are redundant, since a scope error usually leads to a variable having undefined type, which causes a type error immediately after. 
 
-        The panic-mode error handling, while often succesful in continuing parsing, also tends to very quickly reach the end of file while skipping input, making only the first syntax error message very meaningful. Some other approach to constructing synchronization sets that is more specific to this grammar might be worth attempting. 
+        The panic-mode error handling, while often successful in continuing parsing, also tends to very quickly reach the end of file while skipping input, making only the first syntax error message very meaningful. Some other approach to constructing synchronization sets that is more specific to this grammar might be worth attempting. 
 
         Overall code quality improvements could be made in a number of places, making the compiler easier to extend and improve. One thing in particular would be the introduction of some kind of error handling class, which might help cut back on the length of the parser class and help implement some of the error message improvements mentioned above.
 
