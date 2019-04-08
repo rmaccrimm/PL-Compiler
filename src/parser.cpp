@@ -466,7 +466,7 @@ void Parser::read_statement()
                 type_error("Cannot read value for procedure " + id);
             }
         }
-        catch (const scope_error &e) {
+        catch (scope_error) {
             // Error messages already issued in variable_access            
         }
     }
@@ -553,7 +553,7 @@ void Parser::assignment_statement()
         std::cout << "Number of variables does not match number of expressions" << std::endl;
     }
     else {
-        for (int i = 0; i < vars.size(); i++) {
+        for (unsigned int i = 0; i < vars.size(); i++) {
             auto id = vars[i];
             auto e_type = expr_types[i];
             try {
@@ -568,7 +568,7 @@ void Parser::assignment_statement()
                     type_error("Mismatch between types of LHS and RHS of assignment statement");
                 }
             }
-            catch (const scope_error &e) {
+            catch (scope_error) {
                 // These errors will have already been issued in variable_access
             }
         }
@@ -964,7 +964,7 @@ void Parser::indexed_selector()
         BlockData data = block_table.find(id);
         emit("INDEX", {data.size, line});
     }
-    catch (const scope_error &e) {
+    catch (scope_error) {
         // This error message will have been issued already by variable_access
     }
     
