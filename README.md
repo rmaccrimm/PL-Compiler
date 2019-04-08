@@ -78,5 +78,5 @@ line, as well as to the output file. Note that if errors occurr, no output will 
 The output file can then be passed as the input for the interpreter, which will produce an output 
 file called assembly.out and load and run this file with the interpreter
 ```
-./plinter input-file
+./plinterp input-file
 ```
