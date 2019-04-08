@@ -15,7 +15,7 @@ bool sfind(std::set<Symbol> set, Symbol s) { return set.find(s) != set.end(); }
 
 
 Parser::Parser(bool debug):
-    line{1}, num_errors{0}, label_num{1}, output{output}, debug_mode{debug}
+    line{1}, num_errors{0}, label_num{1}, debug_mode{debug}
 {
     init_symbol_sets();
 }
@@ -678,9 +678,9 @@ PLType Parser::expression_end(PLType lhs_type)
     std::string nonterm = "expression_end";
     auto s = next_token->symbol;
     if (s == AND || s == OR) {
-        emit((s == AND ? "AND" : "OR"));
         primary_operator();
         auto rhs_type = expression();
+        emit((s == AND ? "AND" : "OR"));
         if (!equals(lhs_type, PLType::BOOLEAN) || !equals(rhs_type, PLType::BOOLEAN)) {
             type_error("Both operands for logical operator must be Boolean");
             return PLType::UNDEFINED;
