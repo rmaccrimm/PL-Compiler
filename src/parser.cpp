@@ -381,7 +381,7 @@ void Parser::procedure_definition()
         false,              // constant
         false,              // array
         0,                  // displacement - doesn't apply to procedures
-        start_label         // start_addr 
+        proc_label          // start_addr 
     );
 
     block_table.push_new();
