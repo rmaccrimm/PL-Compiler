@@ -124,35 +124,11 @@ Absolute addressing is left to the asesmbler stage of compilation. During parsin
 
     \section{Limitations/Possible Extensions}
 
-        \subsection{Part IV}
-
         At this point the compiler implements all the expected behavior for the PL language has been implemented (excluding a couple limitations like identifier length and maximum block table size), but there are a number of extensions that could be made. Probably the most significant would be to introduce procedure parameters, as without them it is difficult to do anything useful with recursive procedure calls and functional programming is not really possible. This would be fairly straightforward to implement as well, using the negative displacement approach described in the Brinch Hansen book. The addition of a character type and character arrays would also greatly increase the usefulness of the language as currently there is no way to even output English messages. Other potential features could be a way of storing elements of different types, such as a tuple or struct, and floating point numbers. 
 
         Beyond just language features, more work could be done on the assembly and code generation stages as well. Doing some analysis and optimization of the output assembly code could be worthwhile. It might also be interesting to attempt to translate to something more practical list x86 assembly or even C code, though this would probably require significant reworking of the parser since the virtual PL computer so closely resembles the PL language.
 
-        \subsection{Part III}
-
-        At this point the compiler seems to be fairly robust, in terms of handling any sort of input without crashing and producing relevant error messages. The error messages themselves are the main thing that could be improved, as they currently point to a line of the program and the general sort of error (mismatch between types, undefined variable) but they could be more specific in some cases and provide more information on the state of the system, such as deduced variable types, which specific variable within a comma separated l,list, etc. Additionally a lot of error messages are redundant, since a scope error usually leads to a variable having undefined type, which causes a type error immediately after. 
-
-        The panic-mode error handling, while often successful in continuing parsing, also tends to very quickly reach the end of file while skipping input, making only the first syntax error message very meaningful. Some other approach to constructing synchronization sets that is more specific to this grammar might be worth attempting. 
-
-        Overall code quality improvements could be made in a number of places, making the compiler easier to extend and improve. One thing in particular would be the introduction of some kind of error handling class, which might help cut back on the length of the parser class and help implement some of the error message improvements mentioned above.
-
-        \subsection{Part II}
-
-        Currently the most lacking part of the parser is in error handling, as the program simply crashes on an invalid program with minimal information given in the error message. Implementing proper panic-mode error handling would be the most obvious next step, skipping input tokens until some point is found from which parsing can continue. It would also be helpful to output more meaningful error messages, such as what was expected to be seen, and using the actual lexemes rather than symbol names. 
-
-        Another possible extension of the parser would be to explicitly produce the parse tree and store it in some sort of tree data structure. This could potentially be useful in producing error messages or in panic-mode error handling. If nothing is found that can follow the current non-terminal, the parser could move back up the tree, looking for something that could follow at any point. A formal parse table could also be constructed, reducing the need for searching first and follow sets, and formally verifying the language is LL(1), excluding the one ambiguity with identifiers.
-
-        Testing is also currently very limited and the parser has only been verified on one program taken from the Brinch Hansen book. Before the next stage I plan to implement some unit tests and try to verify that every control path is followed as expected. 
-
-        \subsection{Part I}
-
-        Implementing the rest of the compiler will be the most important thing going forward, but there are some improvements that could be made to the scanner as well. Tokens currently take up more space than they need to by always having a lexeme and a value. For many tokens all we need is the symbol name for it to serve its purpose. While this is a pretty minor improvement, there could be multiple types of tokens inherited from a base class for word tokens, numeral tokens, etc. that only have as much info as needed. Since I already use a table of token pointers in the symbol table, incorporating this polymorphism would be fairly straightforward. Additionally, all lexemes could be stored in a buffer and only an index would be needed in the token rather than the full string.
-
-        One current issue with the scanner is that it does not enforce the PL limitation wherein only the first ten characters of an identifier are meaningful. While removing this limitation seems like an upgrade, it is not true to the PL language specification. This condition should be straightforward to implement but will require some additional testing.
-
-        Another improvement that could be made is to implement the scanner in a way that more closely resembles a finite-state automaton, rather than with the current conditional based approach I'm using. This would make rigorously describing it's output easier and likely be less prone to bugs, though maybe more difficult or tedious to implement.
+        Error detection is relatively informative and robust at this point, but could always be improved upon as well. The panic-mode error handling, while often successful in continuing parsing, also tends to very quickly reach the end of file while skipping input, making only the first syntax error message very meaningful. Some other approach to constructing synchronization sets that is more specific to this grammar could possibly provide a better result.
 
 
     \pagebreak
